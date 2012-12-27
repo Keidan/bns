@@ -10,11 +10,12 @@ Instructions
 
 download the software :
 
-  mkdir <folder>
-  cd <folder>
-  git clone git://github.com/Keidan/bns.git
-  cd bns
-  make
+  mkdir folder<br>
+  cd folder<br>
+  git clone git://github.com/Keidan/bns.git<br>
+  cd bns<br>
+  make<br>
+  
 
 License (like GPL)
 ==================
