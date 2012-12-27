@@ -1,5 +1,5 @@
-#ifndef __bns_header_H__
-  #define __bns_header_H__
+#ifndef __BNS_HEADER_H__
+  #define __BNS_HEADER_H__
 
 
   #include <netinet/if_ether.h>
@@ -219,4 +219,4 @@
   }
 
 
-#endif /* __bns_header_H__ */
+#endif /* __BNS_HEADER_H__ */
