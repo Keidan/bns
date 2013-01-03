@@ -10,8 +10,8 @@ Instructions
 
 download the software :
 
-  mkdir folder<br>
-  cd folder<br>
+  mkdir devel<br>
+  cd devel<br>
   git clone git://github.com/Keidan/bns.git<br>
   cd bns<br>
   make<br>
