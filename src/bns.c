@@ -7,7 +7,7 @@
  * bns
  *
  * @par Copyright
- * Copyright 2011 Keidan, all right reserved
+ * Copyright 2011-2013 Keidan, all right reserved
  *
  * This software is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY.
@@ -36,6 +36,8 @@ int main(int argc, char** argv) {
   char* buffer;
   int maxfd = 0;
   fd_set rset;
+  
+  fprintf(stdout, "Basic network sniffer is a FREE software.\nCopyright 2011-2013 By kei\nLicense GPL.\n);
 
   FD_ZERO(&rset);
 
