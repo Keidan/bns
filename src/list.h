@@ -33,6 +33,9 @@
 /**
  * Get offset of a member
  */
+#ifdef offsetof
+#undef offsetof
+#endif
 #define offsetof(TYPE, MEMBER) ((size_t) &((TYPE *)0)->MEMBER)
 
 /**
