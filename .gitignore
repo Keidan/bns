@@ -1,3 +1,7 @@
 *.o
 bns
 *~
+Makefile
+CMakeMakeFiles
+CMakeCache
+cmake_*
