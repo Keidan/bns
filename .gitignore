@@ -2,6 +2,6 @@
 bns
 *~
 Makefile
-CMakeMakeFiles
-CMakeCache
+CMakeFiles
+CMakeCache*
 cmake_*
