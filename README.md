@@ -14,6 +14,7 @@ download the software :
   cd devel<br>
   git clone git://github.com/Keidan/bns.git<br>
   cd bns<br>
+  cmake .<br>
   make<br>
   
 
