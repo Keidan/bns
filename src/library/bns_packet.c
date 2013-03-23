@@ -23,9 +23,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "bns_packet.h"
-#include "bns_utils.h"
-#include "bns_logger.h"
+#include <bns/bns_packet.h>
+#include <bns/bns_utils.h>
+#include <bns/bns_logger.h>
 
 
 #define SET_NSET(cond) (!!(cond)), (cond ? "Set" : "Not Set")
@@ -177,32 +177,32 @@ void release_network_buffer(struct bns_network_s *net) {
 }
 
 
-_Bool match_from_simple_filter(struct bns_network_s *net, long host, int port) {
+_Bool match_from_simple_filter(struct bns_network_s *net, struct bns_filter_s filter) {
   _Bool ip_found = 0, port_found = 0;
   if(net->eth->h_proto == ETH_P_IP || net->eth->h_proto == ETH_P_IPV6) {
     if(net->ipv4) {
-      if(host) {
+      if(filter.ip) {
 	char src [INET_ADDRSTRLEN], dst [INET_ADDRSTRLEN];
 	memset(dst, 0, sizeof(dst));
 	memset(src, 0, sizeof(src));
 	inet_ntop(AF_INET, &net->ipv4->saddr, src, INET_ADDRSTRLEN);
 	inet_ntop(AF_INET, &net->ipv4->daddr, dst, INET_ADDRSTRLEN);
-	if(host == bns_utils_ip_to_long(src))
+	if(filter.ip == bns_utils_ip_to_long(src))
 	  ip_found = 1;
-	else if(host == bns_utils_ip_to_long(dst))
+	else if(filter.ip == bns_utils_ip_to_long(dst))
 	  ip_found = 1;
 	if(!ip_found) return 0;
       } else ip_found = 1;
 
       if(net->tcp) {
-	if(port > 0) {
-	  if(port == net->tcp->source) port_found = 1;
-	  else if(port == net->tcp->dest) port_found = 1;
+	if(filter.port > 0) {
+	  if(filter.port == net->tcp->source) port_found = 1;
+	  else if(filter.port == net->tcp->dest) port_found = 1;
 	} else port_found = 1;
       } else if(net->udp) {
-	if(port > 0) {
-	  if(port == net->udp->source) port_found = 1;
-	  else if(port == net->udp->dest) port_found = 1;
+	if(filter.port > 0) {
+	  if(filter.port == net->udp->source) port_found = 1;
+	  else if(filter.port == net->udp->dest) port_found = 1;
 	} else port_found = 1;
       }
     }

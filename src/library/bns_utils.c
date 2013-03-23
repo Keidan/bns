@@ -31,8 +31,8 @@
 #include <netdb.h>
 #include <linux/if_packet.h>
 #include <unistd.h>
-#include "bns_utils.h"
-#include "bns_logger.h"
+#include <bns/bns_utils.h>
+#include <bns/bns_logger.h>
 
 int bns_utils_prepare_ifaces(struct iface_s *ifaces, int *maxfd, fd_set *rset, const char iname[IF_NAMESIZE]) {
   int i;
