@@ -5,7 +5,7 @@
     #define BNS_LOGGER_STD stderr
   #endif /* BNS_LOGGER_STD */
 
-  #ifdef DEBUG
+  #ifdef LOGGER
     #include <libgen.h>
 
     #define __LOG_FILE__       basename(__FILE__)
