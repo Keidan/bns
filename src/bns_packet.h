@@ -32,48 +32,63 @@
   #include <limits.h>
 
 
-  _Bool match_from_simple_filter(char* buffer, long host, int port);
+/* utilisee pour le decodage de la reponse/requete ARP */
+  struct arphdr_part2_s {
+    unsigned char sha[ETH_ALEN];
+    unsigned char sip[4];
+    unsigned char tha[ETH_ALEN];
+    unsigned char tip[4];
+  };
+
+  struct arp_parts_s{
+      struct arphdr *arp1;
+      struct arphdr_part2_s *arp2;
+  };
+
+  struct bns_network_s {
+      struct ethhdr *eth;
+      struct arp_parts_s *arp;
+      struct iphdr  *ipv4;
+      struct udphdr *udp;
+      struct tcphdr *tcp;
+  };
+
+  int decode_network_buffer(const char* buffer, struct bns_network_s *net, __u32 length);
+  void release_network_buffer(struct bns_network_s *net);
+
+  _Bool match_from_simple_filter(struct bns_network_s *net, long host, int port);
 
 
   /**
    * Affichage de l'entete Ethernet.
-   * @param buffer[in] Buffer contenant les headers + payload.
-   * @param length[in] Taille du buffer.
-   * @param offset[in,out] Offset de depart, sera modifie apres appel.
+   * @param eth[in] Entete Ethernet.
    */
-  __be16 bns_header_print_eth(char* buffer, __u32 length, __u32 *offset);
+  void bns_header_print_eth(struct ethhdr *eth);
 
 
   /**
    * Affichage de l'entete ARP.
-   * @param buffer[in] Buffer contenant les headers + payload.
-   * @param length[in] Taille du buffer.
-   * @param offset[in,out] Offset de depart, sera modifie apres appel.
+   * @param arp[in] Entete ARP.
+   * @param p2[in] Entete ARP partie 2.
    */
-  void bns_header_print_arp(char* buffer, __u32 length, __u32 *offset);
+  void bns_header_print_arp(struct arp_parts_s *arp);
 
   /**
    * Affichage de l'entete IPv4/IPv6.
-   * @param buffer[in] Buffer contenant les headers + payload.
-   * @param length[in] Taille du buffer.
-   * @param offset[in,out] Offset de depart, sera modifie apres appel.
+   * @param ipv4[in] Entete IPv4.
    */
-  __u8 bns_header_print_ip(char* buffer, __u32 length, __u32 *offset);
+  void bns_header_print_ip(struct iphdr* ipv4);
 
   /**
    * Affichage de l'entete UDP.
-   * @param buffer[in] Buffer contenant les headers + payload.
-   * @param length[in] Taille du buffer.
-   * @param offset[in,out] Offset de depart, sera modifie apres appel.
+   * @param udp[in] Entete UDP.
    */
-  void bns_header_print_upd(char* buffer, __u32 length, __u32 *offset);
+  void bns_header_print_upd(struct udphdr *udp);
 
   /**
    * Affichage de l'entete TCP.
-   * @param buffer[in] Buffer contenant les headers + payload.
-   * @param length[in] Taille du buffer.
-   * @param offset[in,out] Offset de depart, sera modifie apres appel.
+   * @param tcp[in] Entet TCP.
    */
-  void bns_header_print_tcp(char* buffer, __u32 length, __u32 *offset);
+  void bns_header_print_tcp(struct tcphdr *tcp);
 
 #endif /* __BNS_PACKET_H__ */

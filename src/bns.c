@@ -55,7 +55,7 @@ static const struct option long_options[] = {
     { NULL     , 0, NULL, 0   } 
 };
 
-#define convertToint(str, n_out) ({		\
+#define convert_to_int(str, n_out) ({		\
     n_out = strtol(str, NULL, 10);		\
     if((errno == ERANGE) || (errno == EINVAL))	\
       n_out = 0;				\
@@ -87,9 +87,10 @@ int main(int argc, char** argv) {
   fd_set rset;
   char iname[IF_NAMESIZE], host[_POSIX_HOST_NAME_MAX];
   __u16 port = 0;
-  _Bool found = 0, extract = 0;
+  _Bool extract = 0;
   unsigned int long_host = 0;
   long long int counts = 0L;
+  struct bns_network_s net;
 
   bzero(iname, IF_NAMESIZE);
   bzero(host, _POSIX_HOST_NAME_MAX);
@@ -130,7 +131,7 @@ int main(int argc, char** argv) {
 	long_host = bns_utils_ip_to_long(host);
 	break;
       case '4': /* port */
-	convertToint(optarg, port);
+	convert_to_int(optarg, port);
 	break;
       case '5': /* extract */
 	extract = 1;
@@ -152,10 +153,10 @@ int main(int argc, char** argv) {
 	block_start=!(block_end=1);
       }
       //if(extract) payload only
-      printf("\t%s", input_buffer);
+      printf("\textract:%d, %s", extract, input_buffer);
       bzero(input_buffer, BUFFER_LENGTH);
     }
-    return;
+    return EXIT_SUCCESS; /* input ne fait que ca */
   } else if(output)
     fprintf(stdout, "Ouput mode...\n");
   else 
@@ -205,8 +206,16 @@ int main(int argc, char** argv) {
 	  continue;
 	}
 
+
+	if(decode_network_buffer(buffer, &net, ret) != 0) {
+	  free(buffer);
+	  bns_utils_clear_ifaces(&ifaces);
+	  logger("FATAL: DECODE FAILED\n");
+	  exit(EXIT_FAILURE); /* pas besoin de continuer... */
+	}
 	if(long_host || port)
-          if(!match_from_simple_filter(buffer, long_host, port)) {
+          if(!match_from_simple_filter(&net, long_host, port)) {
+	    release_network_buffer(&net);
 	    free(buffer);
 	    continue;
 	  } 
@@ -218,33 +227,26 @@ int main(int argc, char** argv) {
 	  fflush(output);
 	  counts++;
 	} else {
-	  /* init */
-	  __u32 hoffset = 0;
 	  /* partie decodage + display */
 	  printf("iFace name: %s (%d bytes)\n", iter->name, ret);
-	  /* Decodage + affichage de l'entete ethernet */
-	  __be16 hproto = bns_header_print_eth(buffer, ret, &hoffset);
+	  /* affichage de l'entete ethernet */
+	  bns_header_print_eth(net.eth);
 	
 	  /* Si le paquet contient un header IP v4/v6 on decode */
-	  if(hproto == ETH_P_IP || hproto == ETH_P_IPV6) {
-	    /* Decodage + affichage de l'entete IP */
-	    __u8 ip_proto = bns_header_print_ip(buffer, ret, &hoffset);
-	    if(ip_proto == IPPROTO_TCP) {
-	      /* Decodage + affichage de l'entete TCP */
-	      bns_header_print_tcp(buffer, ret, &hoffset);
-	    } else if(ip_proto == IPPROTO_UDP) {
-	      /* Decodage + affichage de l'entete UDP */
-	      bns_header_print_upd(buffer, ret, &hoffset);
-	    } else if(ip_proto == IPPROTO_ICMP) {
-	      printf("***ICMPv4 UNSUPPORTED ***\n");
-	    } else if(ip_proto == IPPROTO_ICMPV6) {
-	      printf("***ICMPv6 UNSUPPORTED ***\n");
-	    }  else /* Le header est d'un autre type qu'UDP, TCP */
-	      printf("***Unsupported IP protocol: %d***\n", ip_proto);
+	  if(net.ipv4) {
+	    /* affichage de l'entete IP */
+	    bns_header_print_ip(net.ipv4);
+	    if(net.tcp) {
+	      /* affichage de l'entete TCP */
+	      bns_header_print_tcp(net.tcp);
+	    } else if(net.udp) {
+	      /* affichage de l'entete UDP */
+	      bns_header_print_upd(net.udp);
+	    }
 	    /* Si le paquet contient un header ARP */
-	  } else if(hproto == ETH_P_ARP) {
-	    /* Decodage + affichage de l'entete ARP */
-	    bns_header_print_arp(buffer, ret, &hoffset);
+	  } else if(net.arp) {
+	    /* affichage de l'entete ARP */
+	    bns_header_print_arp(net.arp);
 
 	  } /* le paquet ne contient pas de header ip ni arp ; non gere ici*/
 
@@ -255,6 +257,7 @@ int main(int argc, char** argv) {
 	  /* plus besoin du buffer */
 	  free(buffer);
 	}
+	release_network_buffer(&net);
       }
     }
   }

@@ -5,7 +5,6 @@
     #define BNS_LOGGER_STD stderr
   #endif /* BNS_LOGGER_STD */
 
-
   #ifdef DEBUG
     #include <libgen.h>
 

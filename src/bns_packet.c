@@ -2,18 +2,11 @@
 #include <stdio.h>
 #include <string.h>
 #include "bns_packet.h"
+#include "bns_utils.h"
+#include "bns_logger.h"
 
 
 #define SET_NSET(cond) (!!(cond)), (cond ? "Set" : "Not Set")
-
-
-/* utilisee pour le decodage de la reponse/requete ARP */
-struct arphdr_part2 {
-    unsigned char sha[ETH_ALEN];
-    unsigned char sip[4];
-    unsigned char tha[ETH_ALEN];
-    unsigned char tip[4];
-};
 
 /** 
  * Pour eviter les pb de support et surtout de compilation la structure est 
@@ -40,24 +33,138 @@ struct ipv6hdr {
 };
 
 
-
-
-_Bool match_from_simple_filter(char* buffer, long host, int port) {
-  __u32 offset = 0;
-  _Bool ip_found = 0, port_found = 0;
+int decode_network_buffer(const char* buffer, struct bns_network_s *net, __u32 length) {
+  __u32 offset = sizeof(struct ethhdr);
+  memset(net, 0, sizeof(struct bns_network_s));
   struct ethhdr *eth = (struct ethhdr *)buffer;
-  offset += sizeof(struct ethhdr);
-  __be16 proto = ntohs(eth->h_proto);
-  if(proto == ETH_P_IP || proto == ETH_P_IPV6) {
-    struct iphdr *ip = (struct iphdr*)(buffer + offset);
-    if(ip->version == 4) {
+  net->eth = (struct ethhdr *)malloc(sizeof(struct ethhdr));
+  if(!net->eth) {
+    logger("Unable to alloc memory for eth header!\n");
+    return -1;
+  }
+  memcpy(net->eth, eth, sizeof(struct ethhdr));
+  net->eth->h_proto = ntohs(net->eth->h_proto);
+  if(net->eth->h_proto == ETH_P_IP || net->eth->h_proto == ETH_P_IPV6) {
+    struct iphdr *ip4 = (struct iphdr*)(buffer + offset);
+
+    __u8 protocol = 0;
+    if(ip4->version == 4) {
+      net->ipv4 = (struct iphdr *)malloc(sizeof(struct iphdr));
+      if(!net->ipv4) {
+	release_network_buffer(net);
+	logger("Unable to alloc memory for ipv4 header!\n");
+	return -1;
+      }
+      memcpy(net->ipv4, ip4, sizeof(struct iphdr));
       offset += sizeof(struct iphdr);
+      net->ipv4->tot_len = ntohs(ip4->tot_len);
+      net->ipv4->tos = ntohs(ip4->tos); /* pas certains */
+      //net->ipv4->ihl = /*ntohl(*/ip4->ihl/*)*/;
+      net->ipv4->frag_off = ntohs(ip4->frag_off);
+      protocol = net->ipv4->protocol;
+    }
+    if(protocol == IPPROTO_TCP) {
+      union tcp_word_hdr *utcp = (union tcp_word_hdr*)(buffer + offset);
+      struct tcphdr *tcp = &utcp->hdr;     
+      net->tcp = (struct tcphdr *)malloc(sizeof(struct tcphdr));
+      if(!net->tcp) {
+	release_network_buffer(net);
+	logger("Unable to alloc memory for tcp header!\n");
+	return -1;
+      }
+      memcpy(net->tcp, tcp, sizeof(struct tcphdr));
+      offset += sizeof(union tcp_word_hdr);
+      net->tcp->source = ntohs(net->tcp->source);
+      net->tcp->dest = ntohs(net->tcp->dest);
+      //net->tcp->seq = /*ntohl(*/net->tcp->seq/*)*/;
+      //net->tcp->ack_seq = /*ntohl(*/net->tcp->ack_seq/*)*/;
+      net->tcp->check = ntohs(net->tcp->check);
+      if(!net->tcp->psh && !net->tcp->syn && (length - offset)) {
+	printf("TCP Trailer: Not supported (%d bytes)\n", (length - offset));
+	offset += (length - offset);
+      }
+    } else if(protocol == IPPROTO_UDP) {
+      struct udphdr *udp = (struct udphdr*)(buffer + offset);
+      net->udp = (struct udphdr *)malloc(sizeof(struct udphdr));
+      if(!net->udp) {
+	release_network_buffer(net);
+	logger("Unable to alloc memory for udp header!\n");
+	return -1;
+      }
+      memcpy(net->udp, udp, sizeof(struct udphdr));
+      offset += sizeof(struct udphdr);
+      net->udp->source = ntohs(net->udp->source);
+      net->udp->dest = ntohs(net->udp->dest);
+      net->udp->check = ntohs(net->udp->check);
+      net->udp->len = ntohs(net->udp->len);
+    } else if(protocol == IPPROTO_ICMP) {
+      printf("***ICMPv4 UNSUPPORTED ***\n");
+    } else if(protocol == IPPROTO_ICMPV6) {
+      printf("***ICMPv6 UNSUPPORTED ***\n");
+    }
+  } else if(net->eth->h_proto == ETH_P_ARP) {
+    struct arphdr *arp = (struct arphdr*)(buffer + offset);
+    net->arp = (struct arp_parts_s *)malloc(sizeof(struct arp_parts_s));
+    if(!net->arp) {
+      release_network_buffer(net);
+      logger("Unable to alloc memory for arp header!\n");
+      return -1;
+    }
+    memset(net->arp, 0, sizeof(struct arp_parts_s));
+    net->arp->arp1 = (struct arphdr *)malloc(sizeof(struct arphdr));
+    if(!net->arp->arp1) {
+      release_network_buffer(net);
+      logger("Unable to alloc memory for arp1 header!\n");
+      return -1;
+    }
+    memcpy(net->arp->arp1, arp, sizeof(struct arphdr));
+    offset += sizeof(struct arphdr);  
+    net->arp->arp1->ar_op = ntohs(net->arp->arp1->ar_op);
+    net->arp->arp1->ar_hrd = ntohs(net->arp->arp1->ar_hrd);  
+    /* part 2 */
+    if((net->arp->arp1->ar_op == 1 || net->arp->arp1->ar_op == 2) && net->arp->arp1->ar_pln == 4) {
+      struct arphdr_part2_s *p2 = (struct arphdr_part2_s*)(buffer + offset);
+      net->arp->arp2 = (struct arphdr_part2_s *)malloc(sizeof(struct arphdr_part2_s));   
+      if(!net->arp->arp2) {
+	release_network_buffer(net);
+	logger("Unable to alloc memory for arp2 header!\n");
+	return -1;
+      }
+      memcpy(net->arp->arp2, p2, sizeof(struct arphdr_part2_s));
+      offset += sizeof(struct arphdr_part2_s);
+    }
+    if((length - offset)) {
+      printf("ARP Trailer: Not supported (%d bytes)\n", (length - offset));
+      offset += (length - offset);
+    }
+  }
+  return 0;
+}
+
+
+void release_network_buffer(struct bns_network_s *net) {
+  if(net->eth) free(net->eth), net->eth = NULL;
+  if(net->arp) {
+    if(net->arp->arp1) free(net->arp->arp1), net->arp->arp1 = NULL;
+    if(net->arp->arp2) free(net->arp->arp2), net->arp->arp2 = NULL;
+    free(net->arp), net->arp = NULL;
+  }
+  if(net->ipv4) free(net->ipv4), net->ipv4 = NULL;
+  if(net->udp) free(net->udp), net->udp = NULL;
+  if(net->tcp) free(net->tcp), net->tcp = NULL;
+}
+
+
+_Bool match_from_simple_filter(struct bns_network_s *net, long host, int port) {
+  _Bool ip_found = 0, port_found = 0;
+  if(net->eth->h_proto == ETH_P_IP || net->eth->h_proto == ETH_P_IPV6) {
+    if(net->ipv4) {
       if(host) {
 	char src [INET_ADDRSTRLEN], dst [INET_ADDRSTRLEN];
 	memset(dst, 0, sizeof(dst));
 	memset(src, 0, sizeof(src));
-	inet_ntop(AF_INET, &ip->saddr, src, INET_ADDRSTRLEN);
-	inet_ntop(AF_INET, &ip->daddr, dst, INET_ADDRSTRLEN);
+	inet_ntop(AF_INET, &net->ipv4->saddr, src, INET_ADDRSTRLEN);
+	inet_ntop(AF_INET, &net->ipv4->daddr, dst, INET_ADDRSTRLEN);
 	if(host == bns_utils_ip_to_long(src))
 	  ip_found = 1;
 	else if(host == bns_utils_ip_to_long(dst))
@@ -65,22 +172,15 @@ _Bool match_from_simple_filter(char* buffer, long host, int port) {
 	if(!ip_found) return 0;
       } else ip_found = 1;
 
-      if(ip->protocol == IPPROTO_TCP) {
+      if(net->tcp) {
 	if(port > 0) {
-	  union tcp_word_hdr *utcp = (union tcp_word_hdr*)(buffer + offset);
-	  struct tcphdr *tcp = &utcp->hdr;
-	  __be16 source = ntohs(tcp->source);
-	  __be16 dest = ntohs(tcp->dest);
-	  if(port == source) port_found = 1;
-	  else if(port == dest) port_found = 1;
+	  if(port == net->tcp->source) port_found = 1;
+	  else if(port == net->tcp->dest) port_found = 1;
 	} else port_found = 1;
-      } else if(ip->protocol == IPPROTO_UDP) {
+      } else if(net->udp) {
 	if(port > 0) {
-	  struct udphdr *udp = (struct udphdr*)(buffer + offset);
-	  __u16 source = ntohs(udp->source);
-	  __u16 dest = ntohs(udp->dest);
-	  if(port == source) port_found = 1;
-	  else if(port == dest) port_found = 1;
+	  if(port == net->udp->source) port_found = 1;
+	  else if(port == net->udp->dest) port_found = 1;
 	} else port_found = 1;
       }
     }
@@ -89,40 +189,30 @@ _Bool match_from_simple_filter(char* buffer, long host, int port) {
 }
 
 
-__be16 bns_header_print_eth(char* buffer, __u32 length, __u32 *offset) {
-  struct ethhdr *eth = (struct ethhdr *)buffer;
-  *offset += sizeof(struct ethhdr);
+void bns_header_print_eth(struct ethhdr *eth) {
   printf("Ethernet:\n");
-  __be16 proto = ntohs(eth->h_proto);
   printf("\tSource: %02x:%02x:%02x:%02x:%02x:%02x\n\tDestination: %02x:%02x:%02x:%02x:%02x:%02x\n\tType:0x%04x\n",
 	 eth->h_source[0], eth->h_source[1], eth->h_source[2], eth->h_source[3], eth->h_source[4], eth->h_source[5],
 	 eth->h_dest[0], eth->h_dest[1], eth->h_dest[2], eth->h_dest[3], eth->h_dest[4], eth->h_dest[5],
-	 proto);
-  return proto;
+	 eth->h_proto);
 }
 
 
-void bns_header_print_arp(char* buffer, __u32 length, __u32 *offset) {
-  struct arphdr *arp = (struct arphdr*)(buffer + *offset);
-  *offset += sizeof(struct arphdr);
-  arp->ar_op = ntohs(arp->ar_op);
-  arp->ar_hrd = ntohs(arp->ar_hrd);
-  __be16 op = ntohs(arp->ar_op);
-  __be16 hrd = ntohs(arp->ar_hrd);
+void bns_header_print_arp(struct arp_parts_s *arpp) {
+  struct arphdr *arp = arpp->arp1;
+  struct arphdr_part2_s *p2 = arpp->arp2;
   printf("Adress Resolution Protocol:\n");
-  printf("\tHardware type: 0x%04x\n", hrd);
+  printf("\tHardware type: 0x%04x\n", arp->ar_hrd);
   printf("\tProtocol type: 0x%04x\n", arp->ar_pro);
   printf("\tHardware size: %x\n", arp->ar_hln);
   printf("\tProtocol size: %x\n", arp->ar_pln);
-  printf("\tOpcode: %s (%x)\n", (op == 2 ? "reply" : (op == 1 ? "request" : "unknown")) , op);
+  printf("\tOpcode: %s (%x)\n", (arp->ar_op == 2 ? "reply" : (arp->ar_op == 1 ? "request" : "unknown")) , arp->ar_op);
 
   /* 
    * Uniquement pour les requetes reponse et si la taille du protocol vaut 4 (IPv4).
    * Je n'ai rien sous la main pour tester l'IPv6, je passe mon tour pour le moment...
    */
-  if((op == 1 || op == 2) && arp->ar_pln == 4) {
-    struct arphdr_part2 *p2 = (struct arphdr_part2*)(buffer + *offset);
-    *offset += sizeof(struct arphdr_part2);
+  if(p2) {
     printf("\tSender MAC address: %02x:%02x:%02x:%02x:%02x:%02x\n",
 	   p2->sha[0], p2->sha[1], p2->sha[2], p2->sha[3], p2->sha[4], p2->sha[5]);
     printf("\tSender IP address: %d.%d.%d.%d\n",
@@ -132,40 +222,29 @@ void bns_header_print_arp(char* buffer, __u32 length, __u32 *offset) {
     printf("\tTarget IP address: %d.%d.%d.%d\n",
 	   p2->tip[0], p2->tip[1], p2->tip[2], p2->tip[3]);
   }
-  if((length - *offset)) {
-    printf("\tTrailer: Not supported (%d bytes)\n", (length - *offset));
-    (*offset) += (length - *offset);
-  }
 }
 
 
-__u8 bns_header_print_ip(char* buffer, __u32 length, __u32 *offset) {
-  struct iphdr *ip = (struct iphdr*)(buffer + *offset);
-  if(ip->version == 4) {
-    *offset += sizeof(struct iphdr);
+void bns_header_print_ip(struct iphdr* ipv4) {
+  if(ipv4->version == 4) {
     /* Affichage de l'entete IPv4 */
     char src [INET_ADDRSTRLEN], dst [INET_ADDRSTRLEN];
     memset(dst, 0, sizeof(dst));
     memset(src, 0, sizeof(src));
-    inet_ntop(AF_INET, &ip->saddr, src, INET_ADDRSTRLEN);
-    inet_ntop(AF_INET, &ip->daddr, dst, INET_ADDRSTRLEN);
-    __u16 tot_len = ntohs(ip->tot_len);
-    __u8 tos = ntohs(ip->tos); /* pas certains */
-    __u32 ihl = /*ntohl(*/ip->ihl/*)*/;
-    __u16 frag_off = ntohs(ip->frag_off);
+    inet_ntop(AF_INET, &ipv4->saddr, src, INET_ADDRSTRLEN);
+    inet_ntop(AF_INET, &ipv4->daddr, dst, INET_ADDRSTRLEN);
 
-    printf("Internet Protocol Version %d:\n", ip->version);
-    printf("\tVersion: %d\n\tHeader length: %d bytes\n", ip->version, ihl + sizeof(struct iphdr));
+    printf("Internet Protocol Version %d:\n", ipv4->version);
+    printf("\tVersion: %d\n\tHeader length: %d bytes\n", ipv4->version, ipv4->ihl + sizeof(struct iphdr));
     printf("\tDifferentiated Services Field:\n");
-    printf("\t\tTotal Length: %d\n\t\tIdentification: 0x%04x (%d)\n", tot_len, tos, tos);
-    printf("\tFlags: 0x%02x\n", ip->id);
-    printf("\t\t%d... Reserved bit: %s\n",  SET_NSET(ip->id&IP_RF));
-    printf("\t\t.%d.. Don't fragment: %s\n", SET_NSET(ip->id&IP_DF));
-    printf("\t\t..%d. More fragments: %s\n", SET_NSET(ip->id&IP_MF));
-    printf("\tFragment offset: %d\n", frag_off);
-    printf("\tTime to live: %d\n\tProtocol: %d\n\tHeader checksum: 0x%04x\n", ip->ttl, ip->protocol, ip->check);
+    printf("\t\tTotal Length: %d\n\t\tIdentification: 0x%04x (%d)\n", ipv4->tot_len, ipv4->tos, ipv4->tos);
+    printf("\tFlags: 0x%02x\n", ipv4->id);
+    printf("\t\t%d... Reserved bit: %s\n",  SET_NSET(ipv4->id&IP_RF));
+    printf("\t\t.%d.. Don't fragment: %s\n", SET_NSET(ipv4->id&IP_DF));
+    printf("\t\t..%d. More fragments: %s\n", SET_NSET(ipv4->id&IP_MF));
+    printf("\tFragment offset: %d\n", ipv4->frag_off);
+    printf("\tTime to live: %d\n\tProtocol: %d\n\tHeader checksum: 0x%04x\n", ipv4->ttl, ipv4->protocol, ipv4->check);
     printf("\tSource: %s\n\tDestination: %s\n", src, dst);
-    return ip->protocol;
   } else { /* ip v6 */
     /* Je n'ai rien sous la main pour tester l'IPv6 */
 /*       struct ipv6hdr *ip6 = (struct ipv6hdr*)(buffer + *offset); */
@@ -185,37 +264,22 @@ __u8 bns_header_print_ip(char* buffer, __u32 length, __u32 *offset) {
 /*       printf("\tSource: %s\n\tDestination: %s\n", src, dst); */
 /*       return ip6->nexthdr; */
   }
-  return 0;
 }
 
 
-void bns_header_print_upd(char* buffer, __u32 length, __u32 *offset) {
-  struct udphdr *udp = (struct udphdr*)(buffer + *offset);
-  *offset += sizeof(struct udphdr);
-  __u16 source = ntohs(udp->source);
-  __u16 dest = ntohs(udp->dest);
-  __u16 check = ntohs(udp->check);
-  __u16 len = ntohs(udp->len);
+void bns_header_print_upd(struct udphdr *udp) {
   /* Affichage de l'entete UDP */
   printf("User Datagram Protocol:\n");
-  printf("\tSource port: %d\t\n\tDestination port: %d\n", source, dest);
-  printf("\tLength: %d\n\tChecksum: 0x%04x\n", len, check);
+  printf("\tSource port: %d\t\n\tDestination port: %d\n", udp->source, udp->dest);
+  printf("\tLength: %d\n\tChecksum: 0x%04x\n", udp->len, udp->check);
 }
 
 
-void bns_header_print_tcp(char* buffer, __u32 length, __u32 *offset) {
-  union tcp_word_hdr *utcp = (union tcp_word_hdr*)(buffer + *offset);
-  struct tcphdr *tcp = &utcp->hdr;
-  *offset += sizeof(union tcp_word_hdr);
-  __be16 source = ntohs(tcp->source);
-  __be16 dest = ntohs(tcp->dest);
-  __be32 seq = /*ntohl(*/tcp->seq/*)*/;
-  __be32 ack_seq = /*ntohl(*/tcp->ack_seq/*)*/;
-  __sum16 check = ntohs(tcp->check);   
+void bns_header_print_tcp(struct tcphdr *tcp) { 
   /* Affichage de l'entete TCP */
   printf("Transmission Control Protocol:\n");
-  printf("\tSource port: %d\n\tDestination port: %d\n", source, dest);
-  printf("\tSequence number: %d\n\tAcknowledgement number: %d\n", seq, ack_seq);
+  printf("\tSource port: %d\n\tDestination port: %d\n", tcp->source, tcp->dest);
+  printf("\tSequence number: %d\n\tAcknowledgement number: %d\n", tcp->seq, tcp->ack_seq);
   printf("\tFlags:\n");
   printf("\t\t%d... .... = Congestion Window Reduced (CWR): %s\n", SET_NSET(tcp->cwr));
   printf("\t\t.%d.. .... = ECN-Echo: %s\n", SET_NSET(tcp->ece));
@@ -225,10 +289,6 @@ void bns_header_print_tcp(char* buffer, __u32 length, __u32 *offset) {
   printf("\t\t.... .%d.. = Reset: %s\n", SET_NSET(tcp->rst));
   printf("\t\t.... ..%d. = Syn: %s\n", SET_NSET(tcp->syn));
   printf("\t\t.... ...%d = Fin: %s\n", SET_NSET(tcp->fin));
-  printf("\tWindow size: %d\n\tChecksum: 0x%04x\n", tcp->window, check);
+  printf("\tWindow size: %d\n\tChecksum: 0x%04x\n", tcp->window, tcp->check);
   printf("\tUrg ptr: %d\n", tcp->urg_ptr);
-  if(!tcp->psh && !tcp->syn && (length - *offset)) {
-    printf("\tTrailer: Not supported (%d bytes)\n", (length - *offset));
-    (*offset) += (length - *offset);
-  }
 }
