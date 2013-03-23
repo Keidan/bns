@@ -53,9 +53,28 @@
       struct tcphdr *tcp;
   };
 
-  int decode_network_buffer(const char* buffer, struct bns_network_s *net, __u32 length);
+  /**
+   * Decodage des paquets en fonction du buffer.
+   * @param buffer[in] Buffer de donnee.
+   * @param length[in] Tail du buffer.
+   * @param net[ou] Liste des entetes.
+   * @return -1 sur erreur sinon la taill de la payload (peut etre 0).
+   */
+  int decode_network_buffer(const char* buffer, __u32 length, struct bns_network_s *net);
+
+  /**
+   * Liberation des ressources allouee par decode_network_buffer.
+   * @param net[in,out] Liste des entetes a liberer.
+   */
   void release_network_buffer(struct bns_network_s *net);
 
+  /**
+   * Test si le regle matche ou non.
+   * @param net[in] entetes.
+   * @param host[in] Host a tester (ou null, vide).
+   * @param port[in] Port a test (ou 0)
+   * @return Retourne 1 si match.
+   */
   _Bool match_from_simple_filter(struct bns_network_s *net, long host, int port);
 
 

@@ -33,7 +33,7 @@ struct ipv6hdr {
 };
 
 
-int decode_network_buffer(const char* buffer, struct bns_network_s *net, __u32 length) {
+int decode_network_buffer(const char* buffer, __u32 length, struct bns_network_s *net) {
   __u32 offset = sizeof(struct ethhdr);
   memset(net, 0, sizeof(struct bns_network_s));
   struct ethhdr *eth = (struct ethhdr *)buffer;
@@ -76,8 +76,8 @@ int decode_network_buffer(const char* buffer, struct bns_network_s *net, __u32 l
       offset += sizeof(union tcp_word_hdr);
       net->tcp->source = ntohs(net->tcp->source);
       net->tcp->dest = ntohs(net->tcp->dest);
-      //net->tcp->seq = /*ntohl(*/net->tcp->seq/*)*/;
-      //net->tcp->ack_seq = /*ntohl(*/net->tcp->ack_seq/*)*/;
+      net->tcp->seq = ntohs(net->tcp->seq);
+      net->tcp->ack_seq = ntohs(net->tcp->ack_seq);
       net->tcp->check = ntohs(net->tcp->check);
       if(!net->tcp->psh && !net->tcp->syn && (length - offset)) {
 	printf("TCP Trailer: Not supported (%d bytes)\n", (length - offset));
@@ -138,7 +138,7 @@ int decode_network_buffer(const char* buffer, struct bns_network_s *net, __u32 l
       offset += (length - offset);
     }
   }
-  return 0;
+  return offset;
 }
 
 

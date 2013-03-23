@@ -64,7 +64,10 @@ static const struct option long_options[] = {
 static void bns_sig_int(sig_t s);
 static void bns_cleanup(void);
 
-
+/**
+ * Affichage du 'usage'.
+ * @param err Code passe a exit.
+ */
 void usage(int err) {
   fprintf(stdout, "usage: bns options\n");
   fprintf(stdout, "/!\\ Without input: Root privileges required.\n");
@@ -97,7 +100,7 @@ int main(int argc, char** argv) {
   bzero(input_buffer, BUFFER_LENGTH);
   
   fprintf(stdout, "Basic network sniffer is a FREE software v%d.%d.\nCopyright 2011-2013 By kei\nLicense GPL.\n", BNS_VERSION_MAJOR, BNS_VERSION_MINOR);
-
+  /* pour fermer proprement sur le kill */
   atexit(bns_cleanup);
   signal(SIGINT, (__sighandler_t)bns_sig_int);
 
@@ -128,6 +131,7 @@ int main(int argc, char** argv) {
 	strncpy(host, optarg, _POSIX_HOST_NAME_MAX);
 	if(!bns_utils_is_ipv4(host))
 	  bns_utils_hostname_to_ip(host, host);
+        /* passage de l'ip en long*/
 	long_host = bns_utils_ip_to_long(host);
 	break;
       case '4': /* port */
@@ -206,21 +210,23 @@ int main(int argc, char** argv) {
 	  continue;
 	}
 
-
-	if(decode_network_buffer(buffer, &net, ret) != 0) {
+	/* decodage des differentes entetes */
+	if(decode_network_buffer(buffer, ret, &net) != 0) {
 	  free(buffer);
 	  bns_utils_clear_ifaces(&ifaces);
 	  logger("FATAL: DECODE FAILED\n");
 	  exit(EXIT_FAILURE); /* pas besoin de continuer... */
 	}
+        /* si un regle est appliquee */
 	if(long_host || port)
+	  /* test de cette derniere */
           if(!match_from_simple_filter(&net, long_host, port)) {
 	    release_network_buffer(&net);
 	    free(buffer);
 	    continue;
 	  } 
 	if(output) {
-	  /* affichage du buffer */
+	  /* Ecriture du buffer */
 	  fprintf(output, "---b%lld\n", counts);
 	  bns_utils_print_hex(output, buffer, ret);
 	  fprintf(output, "---e%lld\n", counts);
@@ -257,6 +263,7 @@ int main(int argc, char** argv) {
 	  /* plus besoin du buffer */
 	  free(buffer);
 	}
+	/* liberation des entetes */
 	release_network_buffer(&net);
       }
     }
@@ -273,6 +280,7 @@ static void bns_sig_int(sig_t s) {
 }
 
 static void bns_cleanup(void) {
+  /* si les fichiers ne sont pas sur stdxxx */
   if(input && fileno(input) > 2)
     fclose(input);
   if(output && fileno(output) > 2)
