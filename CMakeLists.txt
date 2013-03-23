@@ -13,10 +13,12 @@ add_custom_target(clean-all
    COMMAND ${CMAKE_COMMAND} -P scripts/clean-all.cmake
 )
 
-add_definitions( -DDEBUG )
+add_definitions( -DLOGGER )
+# CFlags Release
+set(CMAKE_C_FLAGS "-Wall -Werror -O2")
+# CFlags Debug
+set(CMAKE_C_FLAGS "-Wall -Werror -O0 -g")
 
-# CFlags
-set(CMAKE_CXX_FLAGS "-Wall -Werror -O2")
 
 # The version number.
 set (BNS_VERSION_MAJOR 2)
