@@ -41,7 +41,7 @@ int bns_input(FILE* input, _Bool payload_only, _Bool raw) {
     /* Bloc de debut. */
     if(strncmp(input_buffer, "---b", 4) == 0) {
       if(buffer) { /* Si on passe par la c'est qu'il y a un problème avec l'algo/fichier. */
-	logger("FATAL: Buffer already allocated!!!\n");
+	logger("FATAL: Buffer already allocated (line:%d)!!!\n", lines);
 	return EXIT_FAILURE;
       }
       /* Exctraction de la taille. */
@@ -52,7 +52,7 @@ int bns_input(FILE* input, _Bool payload_only, _Bool raw) {
       if(length) {
 	/* Allocation du buffer. */
 	if((buffer = (char*)malloc(length + 1)) == NULL) {
-	  logger("FATAL: Unable to alloc memory (length:%d)\n", length);
+	  logger("FATAL: Unable to alloc memory (length:%d) (line:%d)\n", length, lines);
 	  return EXIT_FAILURE;
 	}
 	/* RAZ du buffer. */
@@ -85,7 +85,7 @@ int bns_input(FILE* input, _Bool payload_only, _Bool raw) {
       /* decodage des differentes entetes */
       if((plen = decode_network_buffer(buffer, length, &net)) == -1) {
 	free(buffer);
-	logger("FATAL: DECODE FAILED\n");
+	logger("FATAL: DECODE FAILED (line:%d)\n", lines);
 	exit(EXIT_FAILURE); /* pas besoin de continuer... */
       }
       if(payload_only) {
