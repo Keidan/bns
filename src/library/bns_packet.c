@@ -126,13 +126,13 @@ int decode_network_buffer(const char* buffer, __u32 length, struct bns_network_s
     }
   } else if(net->eth->h_proto == ETH_P_ARP) {
     struct arphdr *arp = (struct arphdr*)(buffer + offset);
-    net->arp = (struct arp_parts_s *)malloc(sizeof(struct arp_parts_s));
+    net->arp = (struct arphdrs *)malloc(sizeof(struct arphdrs));
     if(!net->arp) {
       release_network_buffer(net);
       logger("Unable to alloc memory for arp header!\n");
       return -1;
     }
-    memset(net->arp, 0, sizeof(struct arp_parts_s));
+    memset(net->arp, 0, sizeof(struct arphdrs));
     net->arp->arp1 = (struct arphdr *)malloc(sizeof(struct arphdr));
     if(!net->arp->arp1) {
       release_network_buffer(net);
@@ -145,15 +145,15 @@ int decode_network_buffer(const char* buffer, __u32 length, struct bns_network_s
     net->arp->arp1->ar_hrd = ntohs(net->arp->arp1->ar_hrd);  
     /* part 2 */
     if((net->arp->arp1->ar_op == 1 || net->arp->arp1->ar_op == 2) && net->arp->arp1->ar_pln == 4) {
-      struct arphdr_part2_s *p2 = (struct arphdr_part2_s*)(buffer + offset);
-      net->arp->arp2 = (struct arphdr_part2_s *)malloc(sizeof(struct arphdr_part2_s));   
+      struct arphdr2 *p2 = (struct arphdr2*)(buffer + offset);
+      net->arp->arp2 = (struct arphdr2 *)malloc(sizeof(struct arphdr2));   
       if(!net->arp->arp2) {
 	release_network_buffer(net);
 	logger("Unable to alloc memory for arp2 header!\n");
 	return -1;
       }
-      memcpy(net->arp->arp2, p2, sizeof(struct arphdr_part2_s));
-      offset += sizeof(struct arphdr_part2_s);
+      memcpy(net->arp->arp2, p2, sizeof(struct arphdr2));
+      offset += sizeof(struct arphdr2);
     }
     if((length - offset)) {
       printf("ARP Trailer: Not supported (%d bytes)\n", (length - offset));
@@ -206,8 +206,49 @@ _Bool match_from_simple_filter(struct bns_network_s *net, struct bns_filter_s fi
 	} else port_found = 1;
       }
     }
+  } else if(net->eth->h_proto == ETH_P_ARP) {
+    if(net->arp && net->arp->arp2) {
+      if(filter.ip) {
+	char ip[17];
+	bzero(ip, 17);
+	sprintf(ip, "%03d.%03d.%03d.%03d", net->arp->arp2->sip[0], net->arp->arp2->sip[1], net->arp->arp2->sip[2], net->arp->arp2->sip[3]);
+	
+	if(filter.ip == bns_utils_ip_to_long(ip))
+	  port_found = ip_found = 1;
+	else {
+	  bzero(ip, 17);
+	  sprintf(ip, "%03d.%03d.%03d.%03d", net->arp->arp2->tip[0], net->arp->arp2->tip[1], net->arp->arp2->tip[2], net->arp->arp2->tip[3]);	
+	  if(filter.ip == bns_utils_ip_to_long(ip))
+	    port_found = ip_found = 1;
+	}
+      } else port_found = ip_found = 1;
+    }
   }
   return ip_found && port_found;
+}
+
+void bns_header_print_headers(const char* buffer, __u32 length, struct bns_network_s net) {
+  /* affichage de l'entete ethernet */
+  bns_header_print_eth(net.eth);
+  /* Si le paquet contient un header IP v4/v6 on decode */
+  if(net.ipv4) {
+    /* affichage de l'entete IP */
+    bns_header_print_ip(net.ipv4);
+    if(net.tcp) {
+      /* affichage de l'entete TCP */
+      bns_header_print_tcp(net.tcp);
+    } else if(net.udp) {
+      /* affichage de l'entete UDP */
+      bns_header_print_upd(net.udp);
+    }
+    /* Si le paquet contient un header ARP */
+  } else if(net.arp) {
+    /* affichage de l'entete ARP */
+    bns_header_print_arp(net.arp);
+  } /* le paquet ne contient pas de header ip ni arp ; non gere ici*/
+  printf("\n");/* mise en page */
+  /* affichage du buffer */
+  bns_utils_print_hex(stdout, (char*)buffer, length, 0);
 }
 
 
@@ -220,9 +261,9 @@ void bns_header_print_eth(struct ethhdr *eth) {
 }
 
 
-void bns_header_print_arp(struct arp_parts_s *arpp) {
+void bns_header_print_arp(struct arphdrs *arpp) {
   struct arphdr *arp = arpp->arp1;
-  struct arphdr_part2_s *p2 = arpp->arp2;
+  struct arphdr2 *p2 = arpp->arp2;
   printf("Adress Resolution Protocol:\n");
   printf("\tHardware type: 0x%04x\n", arp->ar_hrd);
   printf("\tProtocol type: 0x%04x\n", arp->ar_pro);

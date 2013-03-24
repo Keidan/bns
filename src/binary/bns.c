@@ -40,6 +40,7 @@ static const struct option long_options[] = {
     { "host"   , 1, NULL, '3' },
     { "port"   , 1, NULL, '4' },
     { "payload", 0, NULL, '5' },
+    { "raw"    , 0, NULL, '6' },
     { NULL     , 0, NULL, 0   } 
 };
 
@@ -66,6 +67,7 @@ void usage(int err) {
   fprintf(stdout, "\t--port: port filter.\n");
   fprintf(stdout, "\t--host: host address filter.\n");
   fprintf(stdout, "\t--payload: Extract the payload only in stdout (only available with --input).\n");
+  fprintf(stdout, "\t--raw: Print the payload in raw (only available with --input).\n");
   exit(err);
 }
 
@@ -73,7 +75,7 @@ void usage(int err) {
 int main(int argc, char** argv) {
   char iname[IF_NAMESIZE], host[_POSIX_HOST_NAME_MAX];
   __u16 port = 0;
-  _Bool payload_only = 0;
+  _Bool payload_only = 0, raw = 0;
   unsigned int long_host = 0;
 
   bzero(iname, IF_NAMESIZE);
@@ -119,14 +121,19 @@ int main(int argc, char** argv) {
 	break;
       case '5': /* payload */
 	payload_only = 1;
+	break;
+      case '6': /* raw */
+	raw = 1;
+	break;
       default: /* '?' */
+	logger("Unknown option '%c'\n", opt);
 	usage(EXIT_FAILURE);
 	break;
     }
   }
 
   if(input)
-    return bns_input(input, payload_only);
+    return bns_input(input, payload_only, raw);
   struct bns_filter_s filter = {
     .ip = long_host,
     .port = port

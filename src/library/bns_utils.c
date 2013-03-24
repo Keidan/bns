@@ -192,21 +192,25 @@ int bns_utils_hostname_to_ip(const char *hostname, char* ip) {
   return -1;
 }
 
-void bns_utils_print_hex(FILE* std, char* buffer, int len) {
+void bns_utils_print_hex(FILE* std, char* buffer, int len, _Bool print_raw) {
   int i = 0, max = PRINT_HEX_MAX_PER_LINES, loop = len;
   __u8 *p = (__u8 *)buffer;
   char line [max + 3]; /* spaces + \0 */
   memset(line, 0, sizeof(line));
   while(loop--) {
     __u8 c = *(p++);
-    fprintf(std, "%02x ", c);
-    /* uniquement les espaces et les char visibles */
-    if(c >= 0x20 && c <= 0x7e) line[i] = c;
-    /* sinon on masque avec un '.' */
-    else line[i] = 0x2e; /* . */
+    if(!print_raw) {
+      fprintf(std, "%02x ", c);
+      /* uniquement les espaces et les char visibles */
+      if(c >= 0x20 && c <= 0x7e) line[i] = c;
+      /* sinon on masque avec un '.' */
+      else line[i] = 0x2e; /* . */
+    } else fprintf(std, "%02x", c);
     /* on passe a la ligne suivante */
     if(i == max) {
-      fprintf(std, "  %s\n", line);
+      if(!print_raw)
+	fprintf(std, "  %s\n", line);
+      else fprintf(std, "\n");
       /* re init */
       i = 0;
       memset(line, 0, sizeof(line));
@@ -214,13 +218,13 @@ void bns_utils_print_hex(FILE* std, char* buffer, int len) {
     /* sinon suivant */
     else i++;
     /* espace a la moitie */
-    if(i == max / 2) {
+    if(i == max / 2 && !print_raw) {
       fprintf(std, " ");
       line[i++] = 0x20;
     }
   }
   /* Cette etape permet d'aligner 'line'*/
-  if(i != 0 && (i < max || i <= len)) {
+  if(i != 0 && (i < max || i <= len) && !print_raw) {
     while(i++ <= max) fprintf(std, "   "); /* comble avec 3 espaces ex: "00 " */
     fprintf(std, "  %s\n", line);
   }

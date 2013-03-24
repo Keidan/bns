@@ -98,36 +98,14 @@ int bns_output(FILE* output, char iname[IF_NAMESIZE], struct bns_filter_s filter
 	if(output) {
 	  /* Ecriture du buffer */
 	  fprintf(output, "---b%d\n", ret);
-	  bns_utils_print_hex(output, buffer, ret);
-	  fprintf(output, "---e\n");
+	  bns_utils_print_hex(output, buffer, ret, 1);
 	  fflush(output);
 	} else {
 	  /* partie decodage + display */
 	  printf("iFace name: %s (%d bytes)\n", iter->name, ret);
-	  /* affichage de l'entete ethernet */
-	  bns_header_print_eth(net.eth);
-	
-	  /* Si le paquet contient un header IP v4/v6 on decode */
-	  if(net.ipv4) {
-	    /* affichage de l'entete IP */
-	    bns_header_print_ip(net.ipv4);
-	    if(net.tcp) {
-	      /* affichage de l'entete TCP */
-	      bns_header_print_tcp(net.tcp);
-	    } else if(net.udp) {
-	      /* affichage de l'entete UDP */
-	      bns_header_print_upd(net.udp);
-	    }
-	    /* Si le paquet contient un header ARP */
-	  } else if(net.arp) {
-	    /* affichage de l'entete ARP */
-	    bns_header_print_arp(net.arp);
 
-	  } /* le paquet ne contient pas de header ip ni arp ; non gere ici*/
-
-	  printf("\n");/* mise en page */
-	  /* affichage du buffer */
-	  bns_utils_print_hex(stdout, buffer, ret);
+	  /* affichage des headers */
+	  bns_header_print_headers(buffer, ret, net);
 
 	  /* plus besoin du buffer */
 	  free(buffer);

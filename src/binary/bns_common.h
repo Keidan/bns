@@ -38,9 +38,10 @@
    * Fonction gerant le mode input.
    * @param input Fichier input.
    * @param payload_only Retire uniquement la payload.
+   * @param raw Affiche la payload en raw.
    * @return 0 si succes sinon -1.
    */
-  int bns_input(FILE* input, _Bool payload_only);
+int bns_input(FILE* input, _Bool payload_only, _Bool raw);
 
   /**
    * Fonction gerant le mode output et console.
