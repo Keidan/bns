@@ -22,22 +22,26 @@
  */
 #include "bns_common.h"
 
+static long bns_output_fsize(FILE* file);
 
-int bns_output(FILE* output, char iname[IF_NAMESIZE], struct bns_filter_s filter, usage_fct usage) {
+#define SIZE_1MB 1048576
+
+int bns_output(FILE* output, char* outputname, char iname[IF_NAMESIZE], struct bns_filter_s filter, unsigned int size, unsigned int max, usage_fct usage) {
   struct iface_s ifaces;
   struct iface_s* iter;
   char* buffer;
   int maxfd = 0;
   fd_set rset;
   struct bns_network_s net;
+  unsigned int current = 0;
+  
+  if(getuid()) usage(EXIT_FAILURE);
 
   if(output)
-    fprintf(stdout, "Ouput mode...\n");
+    fprintf(stdout, "Ouput mode [file:'%s']...\n", outputname);
   else 
     fprintf(stdout, "Console mode...\n");
-  
-  if(getuid())
-    usage(EXIT_FAILURE);
+
 
   /* RAZ du FD */
   FD_ZERO(&rset);
@@ -95,7 +99,59 @@ int bns_output(FILE* output, char iname[IF_NAMESIZE], struct bns_filter_s filter
 	    free(buffer);
 	    continue;
 	  } 
+	/* output case */
 	if(output) {
+	  /* test de la taille */
+	  if(size) {
+	    /* current depasse max on leave */
+	    if(max && max == current) {
+	      printf("Max files (%d) reached.", current);
+	      release_network_buffer(&net);
+	      bns_utils_clear_ifaces(&ifaces);
+	      free(buffer);
+	      exit(0);
+	    } 
+	    /* recuperation de la taille du fichier */
+	    long fsize = bns_output_fsize(output);
+	    long rsize = SIZE_1MB * size;
+	    /* si la taille du fichier + le packet depasse la taille voulue */
+	    if(fsize+ret >= rsize) {
+	      /* close du precedant fichier */
+	      fclose(output);
+	      /* allocation (+10 bien barbare) du nouveau nom */
+	      char* tmp = malloc(strlen(outputname) + 10);
+	      if(!tmp) {
+		logger("Unable to alloc memory for file name '%s.%d'.", outputname, current);
+		release_network_buffer(&net);
+		bns_utils_clear_ifaces(&ifaces);
+		free(buffer);
+		return EXIT_FAILURE;
+	      }
+	      /* set du nom */
+	      sprintf(tmp, "%s.%d", outputname, current++);
+	      /* rename du fichier */
+	      if(rename(outputname , tmp) == -1) {
+		free(tmp);
+		free(outputname);
+		logger("Error renaming file: (%d) %s", errno, strerror(errno));
+		release_network_buffer(&net);
+		bns_utils_clear_ifaces(&ifaces);
+		free(buffer);
+		return EXIT_FAILURE;
+	      }
+	      free(tmp);
+	      /* reouvre le fichier */
+	      output = fopen(outputname, "w+");
+	      if(!output) {
+		free(outputname);
+		logger("Unable to open file '%s': (%d) %s\n", optarg, errno, strerror(errno));
+		release_network_buffer(&net);
+		bns_utils_clear_ifaces(&ifaces);
+		free(buffer);
+		return EXIT_FAILURE;
+	      }
+	    }
+	  }
 	  /* Ecriture du buffer */
 	  fprintf(output, "---b%d\n", ret);
 	  bns_utils_print_hex(output, buffer, ret, 1);
@@ -121,3 +177,13 @@ int bns_output(FILE* output, char iname[IF_NAMESIZE], struct bns_filter_s filter
   return EXIT_SUCCESS;
 }
 
+static long bns_output_fsize(FILE* file) {
+  long size = 0L, old = 0L;
+  if (file) {
+    old = ftell(file);
+    fseek(file, 0L, SEEK_END);
+    size = ftell(file);
+    fseek(file, old, SEEK_SET);
+  }
+  return size;
+}

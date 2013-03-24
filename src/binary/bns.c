@@ -41,6 +41,8 @@ static const struct option long_options[] = {
     { "port"   , 1, NULL, '4' },
     { "payload", 0, NULL, '5' },
     { "raw"    , 0, NULL, '6' },
+    { "size"   , 1, NULL, '7' },
+    { "max"    , 1, NULL, '8' },
     { NULL     , 0, NULL, 0   } 
 };
 
@@ -63,11 +65,13 @@ void usage(int err) {
   fprintf(stdout, "\t--help, -h: Print this help.\n");
   fprintf(stdout, "\t--iface: Interface name.\n");
   fprintf(stdout, "\t--output: Output file name.\n");
-  fprintf(stdout, "\t--input: Input file name [if set all options are useless, except --extract].\n");
+  fprintf(stdout, "\t--input: Input file name [if set all options are useless, except --payload].\n");
   fprintf(stdout, "\t--port: port filter.\n");
   fprintf(stdout, "\t--host: host address filter.\n");
   fprintf(stdout, "\t--payload: Extract the payload only in stdout (only available with --input).\n");
   fprintf(stdout, "\t--raw: Print the payload in raw (only available with --input).\n");
+  fprintf(stdout, "\t--size: Maximum size in Mb of the output file (only available with --output).\n");
+  fprintf(stdout, "\t--max: Maximum number of files (only available with --output).\n");
   exit(err);
 }
 
@@ -76,7 +80,8 @@ int main(int argc, char** argv) {
   char iname[IF_NAMESIZE], host[_POSIX_HOST_NAME_MAX];
   __u16 port = 0;
   _Bool payload_only = 0, raw = 0;
-  unsigned int long_host = 0;
+  unsigned int long_host = 0, size = 0, max = 0;
+  char* outputname = NULL;
 
   bzero(iname, IF_NAMESIZE);
   bzero(host, _POSIX_HOST_NAME_MAX);
@@ -87,7 +92,7 @@ int main(int argc, char** argv) {
   signal(SIGINT, (__sighandler_t)bns_sig_int);
 
   int opt;
-  while ((opt = getopt_long(argc, argv, "h0:1:2:3:4:5", long_options, NULL)) != -1) {
+  while ((opt = getopt_long(argc, argv, "h0:1:2:3:4:56:7:", long_options, NULL)) != -1) {
     switch (opt) {
       case 'h': usage(0); break;
       case '0': /* iface */
@@ -96,8 +101,15 @@ int main(int argc, char** argv) {
 	  bzero(iname, IF_NAMESIZE);
 	break;
       case '1': /* output */
-	output = fopen(optarg, "w+");
+	if(outputname) free(outputname), outputname = NULL;
+	if(!(outputname = (char*)malloc(strlen(optarg)))) {
+	  logger("Unable to alloc memory for file name '%s'\n", optarg);
+	  usage(EXIT_FAILURE);
+	}
+	strcpy(outputname, optarg);
+	output = fopen(outputname, "w+");
 	if(!output) {
+	  free(outputname);
 	  logger("Unable to open file '%s': (%d) %s\n", optarg, errno, strerror(errno));
 	  usage(EXIT_FAILURE);
 	}
@@ -125,6 +137,12 @@ int main(int argc, char** argv) {
       case '6': /* raw */
 	raw = 1;
 	break;
+      case '7': /* size */
+	convert_to_int(optarg, size);
+	break;
+      case '8': /* max */
+	convert_to_int(optarg, max);
+	break;
       default: /* '?' */
 	logger("Unknown option '%c'\n", opt);
 	usage(EXIT_FAILURE);
@@ -132,13 +150,17 @@ int main(int argc, char** argv) {
     }
   }
 
-  if(input)
+  if(input) {
+    free(outputname);
     return bns_input(input, payload_only, raw);
+  }
   struct bns_filter_s filter = {
     .ip = long_host,
     .port = port
   };
-  return bns_output(output, iname, filter, usage);
+  int ret = bns_output(output, outputname, iname, filter, size, max, usage);
+  free(outputname);
+  return ret;
 }
 
 
