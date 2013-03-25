@@ -1,6 +1,6 @@
 *.o
 *.so
-bns
+bin/bns
 *~
 Makefile
 CMakeFiles
