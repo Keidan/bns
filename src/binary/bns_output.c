@@ -26,7 +26,7 @@ static long bns_output_fsize(FILE* file);
 
 #define SIZE_1MB 1048576
 
-int bns_output(FILE* output, char* outputname, char iname[IF_NAMESIZE], struct bns_filter_s filter, unsigned int size, unsigned int max, usage_fct usage) {
+int bns_output(FILE* output, char* outputname, char iname[IF_NAMESIZE], struct bns_filter_s filter, unsigned int size, unsigned int count, usage_fct usage) {
   struct iface_s ifaces;
   struct iface_s* iter;
   char* buffer;
@@ -85,7 +85,7 @@ int bns_output(FILE* output, char* outputname, char iname[IF_NAMESIZE], struct b
 	}
 
 	/* decodage des differentes entetes */
-	if(decode_network_buffer(buffer, ret, &net) == -1) {
+	if(decode_network_buffer(buffer, ret, &net, BNS_PACKET_CONVERT_NET2HOST) == -1) {
 	  free(buffer);
 	  bns_utils_clear_ifaces(&ifaces);
 	  logger("FATAL: DECODE FAILED\n");
@@ -103,9 +103,9 @@ int bns_output(FILE* output, char* outputname, char iname[IF_NAMESIZE], struct b
 	if(output) {
 	  /* test de la taille */
 	  if(size) {
-	    /* current depasse max on leave */
-	    if(max && max == current) {
-	      printf("Max files (%d) reached.", current);
+	    /* current depasse count on leave */
+	    if(count && count == current) {
+	      fprintf(stderr, "Max files (%d) reached.", current);
 	      release_network_buffer(&net);
 	      bns_utils_clear_ifaces(&ifaces);
 	      free(buffer);
