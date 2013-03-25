@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 2.6 FATAL_ERROR)
 
 project(bns C)
 
@@ -29,16 +29,36 @@ set(CMAKE_C_FLAGS "-Wall -Werror -O2")
 # CFlags Debug
 # set(CMAKE_C_FLAGS "-Wall -Werror -O0 -g")
 
+# To produce x86_64 binaries
+if("${CMAKE_BUILD_TYPE}" MATCHES "x86_64")
+  # the name of the target operating system
+  set(CMAKE_SYSTEM_NAME Linux)
 
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m64")
+
+  set(BNS_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin/x86_64)
+  set(EXECUTABLE_OUTPUT_PATH ${BNS_BINARY_DIR})
+  set(LIBRARY_OUTPUT_PATH ${BNS_BINARY_DIR})
+  file(MAKE_DIRECTORY ${BNS_BINARY_DIR})
+# To produce x86 binaries
+elseif("${CMAKE_BUILD_TYPE}" MATCHES "x86")
+  # the name of the target operating system
+  set(CMAKE_SYSTEM_NAME Linux)
+ 
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
+
+  set(BNS_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin/x86)
+  set(EXECUTABLE_OUTPUT_PATH ${BNS_BINARY_DIR})
+  set(LIBRARY_OUTPUT_PATH ${BNS_BINARY_DIR})
+  file(MAKE_DIRECTORY ${BNS_BINARY_DIR})
 # To produce xscale binaries
-if("${CMAKE_BUILD_TYPE}" MATCHES "xscale")
+elseif("${CMAKE_BUILD_TYPE}" MATCHES "xscale")
   set(CMAKE_SYSTEM_NAME Linux)
   set(CMAKE_SYSTEM_VERSION 1)
 
   set(CMAKE_X_HOME /usr/local/arm-linux-4.4.2-v4)
   # specify the cross compiler
   set(CMAKE_C_COMPILER ${CMAKE_X_HOME}/bin/xscale-none-linux-gnueabi-gcc)
-  set(CMAKE_CXX_COMPILER ${CMAKE_X_HOME}/bin/xscale-none-linux-gnueabi-g++)
    
   # where is the target environment 
   set(CMAKE_FIND_ROOT_PATH  ${CMAKE_X_HOME})
@@ -50,6 +70,14 @@ if("${CMAKE_BUILD_TYPE}" MATCHES "xscale")
   set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
   add_definitions(-DTARGET_BIGENDIAN)
+
+  set(BNS_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin/xscale)
+  set(EXECUTABLE_OUTPUT_PATH ${BNS_BINARY_DIR})
+  set(LIBRARY_OUTPUT_PATH ${BNS_BINARY_DIR})
+  file(MAKE_DIRECTORY ${BNS_BINARY_DIR})
+
+else()
+  message(FATAL_ERROR "Invalid usage please use: cmake -DCMAKE_BUILD_TYPE=[x86|x86_64|xscale]")
 endif()
 
 add_subdirectory(${BNS_SRC_LIB_DIR})
