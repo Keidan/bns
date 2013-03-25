@@ -42,7 +42,7 @@ static const struct option long_options[] = {
     { "payload", 0, NULL, '5' },
     { "raw"    , 0, NULL, '6' },
     { "size"   , 1, NULL, '7' },
-    { "max"    , 1, NULL, '8' },
+    { "count"  , 1, NULL, '8' },
     { NULL     , 0, NULL, 0   } 
 };
 
@@ -69,13 +69,13 @@ void usage(int err) {
   fprintf(stdout, "\t--help, -h: Print this help.\n");
   fprintf(stdout, "\t--iface: Interface name.\n");
   fprintf(stdout, "\t--output: Output file name.\n");
-  fprintf(stdout, "\t--input: Input file name [if set all options are useless, except --payload].\n");
+  fprintf(stdout, "\t--input: Input file name [if set all options are useless, except --payload, --raw, --port, --host].\n");
   fprintf(stdout, "\t--port: port filter.\n");
   fprintf(stdout, "\t--host: host address filter.\n");
   fprintf(stdout, "\t--payload: Extract the payload only in stdout (only available with --input).\n");
   fprintf(stdout, "\t--raw: Print the payload in raw (only available with --input).\n");
   fprintf(stdout, "\t--size: Maximum size in Mb of the output file (only available with --output).\n");
-  fprintf(stdout, "\t--max: Maximum number of files (only available with --output).\n");
+  fprintf(stdout, "\t--count: Maximum number of files (only available with --output).\n");
   exit(err);
 }
 
@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
   char iname[IF_NAMESIZE], host[_POSIX_HOST_NAME_MAX];
   __u16 port = 0;
   _Bool payload_only = 0, raw = 0;
-  unsigned int long_host = 0, size = 0, max = 0;
+  __u32 long_host = 0, size = 0, count = 0;
   char* outputname = NULL;
 
   bzero(iname, IF_NAMESIZE);
@@ -144,8 +144,8 @@ int main(int argc, char** argv) {
       case '7': /* size */
 	convert_to_int(optarg, size);
 	break;
-      case '8': /* max */
-	convert_to_int(optarg, max);
+      case '8': /* count */
+	convert_to_int(optarg, count);
 	break;
       default: /* '?' */
 	logger("Unknown option '%c'\n", opt);
@@ -154,15 +154,15 @@ int main(int argc, char** argv) {
     }
   }
 
-  if(input) {
-    free(outputname);
-    return bns_input(input, payload_only, raw);
-  }
   struct bns_filter_s filter = {
     .ip = long_host,
     .port = port
   };
-  int ret = bns_output(output, outputname, iname, filter, size, max, usage);
+  if(input) {
+    free(outputname);
+    return bns_input(input, filter, payload_only, raw);
+  }
+  int ret = bns_output(output, outputname, iname, filter, size, count, usage);
   free(outputname);
   return ret;
 }
