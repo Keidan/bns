@@ -51,6 +51,10 @@ static const struct option long_options[] = {
     if((errno == ERANGE) || (errno == EINVAL))	\
       n_out = 0;				\
   })
+  
+#ifndef _POSIX_HOST_NAME_MAX
+  #define _POSIX_HOST_NAME_MAX 255
+#endif
 
 static void bns_sig_int(sig_t s);
 static void bns_cleanup(void);
