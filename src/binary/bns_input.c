@@ -26,12 +26,12 @@
 
 static char input_buffer[BUFFER_LENGTH];
 
-int bns_input(FILE* input, _Bool payload_only, _Bool raw) {
+int bns_input(FILE* input, struct bns_filter_s filter, _Bool payload_only, _Bool raw) {
   struct bns_network_s net;
   __u32 length = 0, current = 0, lines = 0, ilen, i;
   char* buffer = NULL;
   int plen = 0;
-
+  _Bool display = 0;
   bzero(input_buffer, BUFFER_LENGTH);
 
   fprintf(stdout, "Input mode...\n");
@@ -83,20 +83,28 @@ int bns_input(FILE* input, _Bool payload_only, _Bool raw) {
     /* Fin du bloc */
     if(current == length) {
       /* decodage des differentes entetes */
-      if((plen = decode_network_buffer(buffer, length, &net)) == -1) {
+      if((plen = decode_network_buffer(buffer, length, &net, BNS_PACKET_CONVERT_NONE)) == -1) {
 	free(buffer);
 	logger("FATAL: DECODE FAILED (line:%d)\n", lines);
 	exit(EXIT_FAILURE); /* pas besoin de continuer... */
       }
-      if(payload_only) {
-	if(!raw)
-	  bns_utils_print_hex(stdout, buffer + plen, length - plen, 0);
-	else
-	  for(i = 0; i < (length - plen); i++)
-	    printf("%c", (buffer+plen)[i]);
-	      printf("\n");
-      } else
-	bns_header_print_headers(buffer, length, net);
+      display = 0;
+      /* si un regle est appliquee */
+      if(filter.ip || filter.port) {
+        /* test de cette derniere */
+        if(match_from_simple_filter(&net, filter)) display = 1;
+      } else display = 1;
+      if(display) {
+        if(payload_only) {
+	  if(!raw)
+	    bns_utils_print_hex(stdout, buffer + plen, length - plen, 0);
+	  else
+	    for(i = 0; i < (length - plen); i++)
+	      printf("%c", (buffer+plen)[i]);
+	        printf("\n");
+        } else
+	  bns_header_print_headers(buffer, length, net);
+      }
       release_network_buffer(&net);
       /* Liberation du buffer et RAZ des index. */
       length = current = 0;
