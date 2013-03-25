@@ -37,11 +37,12 @@
   /**
    * Fonction gerant le mode input.
    * @param input Fichier input.
+   * @param filter Filtre.
    * @param payload_only Retire uniquement la payload.
    * @param raw Affiche la payload en raw.
    * @return 0 si succes sinon -1.
    */
-int bns_input(FILE* input, _Bool payload_only, _Bool raw);
+  int bns_input(FILE* input, struct bns_filter_s filter, _Bool payload_only, _Bool raw);
 
   /**
    * Fonction gerant le mode output et console.
@@ -49,10 +50,10 @@ int bns_input(FILE* input, _Bool payload_only, _Bool raw);
    * @param iname Interface ou NULL pour any.
    * @param filter Filtre.
    * @param size Taille du fichier en Mb.
-   * @param max Nombre max de fichiers.
+   * @param count Nombre max de fichiers.
    * @param usage Fonction usage.
    * @return 0 si succes sinon -1.
    */
-int bns_output(FILE* output, char* outputname, char iname[IF_NAMESIZE], struct bns_filter_s filter, unsigned int size, unsigned int max, usage_fct usage);
+  int bns_output(FILE* output, char* outputname, char iname[IF_NAMESIZE], struct bns_filter_s filter, unsigned int size, unsigned int count, usage_fct usage);
 
 #endif /* __BNS_COMMON_H__ */
