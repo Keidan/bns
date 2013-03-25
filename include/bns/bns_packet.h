@@ -31,6 +31,7 @@
   #include <arpa/inet.h>
   #include <limits.h>
 
+  typedef enum { BNS_PACKET_CONVERT_NONE, BNS_PACKET_CONVERT_HOST2NET, BNS_PACKET_CONVERT_NET2HOST} bns_packet_convert_et;
 
   struct bns_filter_s {
     __u32 ip;
@@ -64,9 +65,10 @@
    * @param buffer[in] Buffer de donnee.
    * @param length[in] Taille du buffer.
    * @param net[ou] Liste des entetes.
+   * @param convert[in] Conversion de certains champs des differentes entetes.
    * @return -1 sur erreur sinon la taill de la payload (peut etre 0).
    */
-  int decode_network_buffer(const char* buffer, __u32 length, struct bns_network_s *net);
+  int decode_network_buffer(const char* buffer, __u32 length, struct bns_network_s *net, bns_packet_convert_et convert);
 
   /**
    * Liberation des ressources allouee par decode_network_buffer.

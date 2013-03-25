@@ -55,7 +55,7 @@ struct ipv6hdr {
 };
 
 
-int decode_network_buffer(const char* buffer, __u32 length, struct bns_network_s *net) {
+int decode_network_buffer(const char* buffer, __u32 length, struct bns_network_s *net, bns_packet_convert_et convert) {
   __u32 offset = sizeof(struct ethhdr);
   memset(net, 0, sizeof(struct bns_network_s));
   struct ethhdr *eth = (struct ethhdr *)buffer;
@@ -65,7 +65,10 @@ int decode_network_buffer(const char* buffer, __u32 length, struct bns_network_s
     return -1;
   }
   memcpy(net->eth, eth, sizeof(struct ethhdr));
-  net->eth->h_proto = ntohs(net->eth->h_proto);
+  if(convert == BNS_PACKET_CONVERT_NET2HOST)
+    net->eth->h_proto = ntohs(net->eth->h_proto);
+  else if(convert == BNS_PACKET_CONVERT_HOST2NET)
+    net->eth->h_proto = htons(net->eth->h_proto);
   if(net->eth->h_proto == ETH_P_IP || net->eth->h_proto == ETH_P_IPV6) {
     struct iphdr *ip4 = (struct iphdr*)(buffer + offset);
 
@@ -79,10 +82,17 @@ int decode_network_buffer(const char* buffer, __u32 length, struct bns_network_s
       }
       memcpy(net->ipv4, ip4, sizeof(struct iphdr));
       offset += sizeof(struct iphdr);
-      net->ipv4->tot_len = ntohs(ip4->tot_len);
-      net->ipv4->tos = ntohs(ip4->tos); /* pas certains */
-      //net->ipv4->ihl = /*ntohl(*/ip4->ihl/*)*/;
-      net->ipv4->frag_off = ntohs(ip4->frag_off);
+      if(convert == BNS_PACKET_CONVERT_NET2HOST) {
+        net->ipv4->tot_len = ntohs(ip4->tot_len);
+        net->ipv4->tos = ntohs(ip4->tos); /* pas certains */
+        //net->ipv4->ihl = /*ntohl(*/ip4->ihl/*)*/;
+        net->ipv4->frag_off = ntohs(ip4->frag_off);
+      } else if(convert == BNS_PACKET_CONVERT_HOST2NET) {
+        net->ipv4->tot_len = htons(ip4->tot_len);
+        net->ipv4->tos = htons(ip4->tos); /* pas certains */
+        //net->ipv4->ihl = /*htonl(*/ip4->ihl/*)*/;
+        net->ipv4->frag_off = htons(ip4->frag_off);
+      }
       protocol = net->ipv4->protocol;
     }
     if(protocol == IPPROTO_TCP) {
@@ -96,11 +106,19 @@ int decode_network_buffer(const char* buffer, __u32 length, struct bns_network_s
       }
       memcpy(net->tcp, tcp, sizeof(struct tcphdr));
       offset += sizeof(union tcp_word_hdr);
-      net->tcp->source = ntohs(net->tcp->source);
-      net->tcp->dest = ntohs(net->tcp->dest);
-      net->tcp->seq = ntohs(net->tcp->seq);
-      net->tcp->ack_seq = ntohs(net->tcp->ack_seq);
-      net->tcp->check = ntohs(net->tcp->check);
+      if(convert == BNS_PACKET_CONVERT_NET2HOST) {
+        net->tcp->source = ntohs(net->tcp->source);
+        net->tcp->dest = ntohs(net->tcp->dest);
+        net->tcp->seq = ntohs(net->tcp->seq);
+        net->tcp->ack_seq = ntohs(net->tcp->ack_seq);
+        net->tcp->check = ntohs(net->tcp->check);
+      } else if(convert == BNS_PACKET_CONVERT_HOST2NET) {
+        net->tcp->source = htons(net->tcp->source);
+        net->tcp->dest = htons(net->tcp->dest);
+        net->tcp->seq = htons(net->tcp->seq);
+        net->tcp->ack_seq = htons(net->tcp->ack_seq);
+        net->tcp->check = htons(net->tcp->check);
+      }
       if(!net->tcp->psh && !net->tcp->syn && (length - offset)) {
 	printf("TCP Trailer: Not supported (%d bytes)\n", (length - offset));
 	offset += (length - offset);
@@ -115,10 +133,17 @@ int decode_network_buffer(const char* buffer, __u32 length, struct bns_network_s
       }
       memcpy(net->udp, udp, sizeof(struct udphdr));
       offset += sizeof(struct udphdr);
-      net->udp->source = ntohs(net->udp->source);
-      net->udp->dest = ntohs(net->udp->dest);
-      net->udp->check = ntohs(net->udp->check);
-      net->udp->len = ntohs(net->udp->len);
+      if(convert == BNS_PACKET_CONVERT_NET2HOST) {
+        net->udp->source = ntohs(net->udp->source);
+        net->udp->dest = ntohs(net->udp->dest);
+        net->udp->check = ntohs(net->udp->check);
+        net->udp->len = ntohs(net->udp->len);
+      } else if(convert == BNS_PACKET_CONVERT_HOST2NET) {
+        net->udp->source = htons(net->udp->source);
+        net->udp->dest = htons(net->udp->dest);
+        net->udp->check = htons(net->udp->check);
+        net->udp->len = htons(net->udp->len);
+      }
     } else if(protocol == IPPROTO_ICMP) {
       printf("***ICMPv4 UNSUPPORTED ***\n");
     } else if(protocol == IPPROTO_ICMPV6) {
@@ -141,8 +166,13 @@ int decode_network_buffer(const char* buffer, __u32 length, struct bns_network_s
     }
     memcpy(net->arp->arp1, arp, sizeof(struct arphdr));
     offset += sizeof(struct arphdr);  
-    net->arp->arp1->ar_op = ntohs(net->arp->arp1->ar_op);
-    net->arp->arp1->ar_hrd = ntohs(net->arp->arp1->ar_hrd);  
+    if(convert == BNS_PACKET_CONVERT_NET2HOST) {
+      net->arp->arp1->ar_op = ntohs(net->arp->arp1->ar_op);
+      net->arp->arp1->ar_hrd = ntohs(net->arp->arp1->ar_hrd);
+    } else if(convert == BNS_PACKET_CONVERT_HOST2NET) {
+      net->arp->arp1->ar_op = htons(net->arp->arp1->ar_op);
+      net->arp->arp1->ar_hrd = htons(net->arp->arp1->ar_hrd);
+    }  
     /* part 2 */
     if((net->arp->arp1->ar_op == 1 || net->arp->arp1->ar_op == 2) && net->arp->arp1->ar_pln == 4) {
       struct arphdr2 *p2 = (struct arphdr2*)(buffer + offset);
