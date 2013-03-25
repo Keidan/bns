@@ -298,7 +298,11 @@ void bns_header_print_ip(struct iphdr* ipv4) {
     inet_ntop(AF_INET, &ipv4->daddr, dst, INET_ADDRSTRLEN);
 
     printf("Internet Protocol Version %d:\n", ipv4->version);
+#ifdef TARGET_BIGENDIAN
+    printf("\tVersion: %d\n\tHeader length: %d bytes\n", ipv4->version, ipv4->ihl + sizeof(struct iphdr));
+#else
     printf("\tVersion: %d\n\tHeader length: %ld bytes\n", ipv4->version, ipv4->ihl + sizeof(struct iphdr));
+#endif /* TARGET_BIGENDIAN */
     printf("\tDifferentiated Services Field:\n");
     printf("\t\tTotal Length: %d\n\t\tIdentification: 0x%04x (%d)\n", ipv4->tot_len, ipv4->tos, ipv4->tos);
     printf("\tFlags: 0x%02x\n", ipv4->id);
