@@ -1,6 +1,8 @@
 *.o
 *.so
-bin/bns
+bin/x86
+bin/x86_64
+bin/xscale
 *~
 Makefile
 CMakeFiles
