@@ -83,7 +83,7 @@ int bns_input(FILE* input, struct bns_filter_s filter, _Bool payload_only, _Bool
     /* Fin du bloc */
     if(current == length) {
       /* decodage des differentes entetes */
-      if((plen = decode_network_buffer(buffer, length, &net, BNS_PACKET_CONVERT_NONE)) == -1) {
+      if((plen = decode_network_buffer(buffer, length, &net, BNS_PACKET_CONVERT_NET2HOST)) == -1) {
 	free(buffer);
 	logger("FATAL: DECODE FAILED (line:%d)\n", lines);
 	exit(EXIT_FAILURE); /* pas besoin de continuer... */
