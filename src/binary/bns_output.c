@@ -26,7 +26,7 @@ static long bns_output_fsize(FILE* file);
 
 #define SIZE_1MB 1048576
 
-int bns_output(FILE* output, char* outputname, char iname[IF_NAMESIZE], struct bns_filter_s filter, unsigned int size, unsigned int count, usage_fct usage) {
+int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsigned int size, unsigned int count, usage_fct usage) {
   struct iface_s ifaces;
   struct iface_s* iter;
   char* buffer;
@@ -47,7 +47,7 @@ int bns_output(FILE* output, char* outputname, char iname[IF_NAMESIZE], struct b
   FD_ZERO(&rset);
 
   /* Preparation de la liste d'interfaces disponibles. */
-  if(bns_utils_prepare_ifaces(&ifaces, &maxfd, &rset, iname) != 0) {
+  if(bns_utils_prepare_ifaces(&ifaces, &maxfd, &rset, filter.iface) != 0) {
     bns_utils_clear_ifaces(&ifaces); /* force le clear pour fermer les sockets deja ouverts */
     return EXIT_FAILURE;
   }
@@ -153,7 +153,7 @@ int bns_output(FILE* output, char* outputname, char iname[IF_NAMESIZE], struct b
 	    }
 	  }
 	  /* Ecriture du buffer */
-	  fprintf(output, "---b%d\n", ret);
+	  fprintf(output, "---b%d,%s\n", ret, iter->name);
 	  bns_utils_print_hex(output, buffer, ret, 1);
 	  fflush(output);
 	} else {

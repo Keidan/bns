@@ -31,8 +31,9 @@ int bns_input(FILE* input, struct bns_filter_s filter, _Bool payload_only, _Bool
   __u32 length = 0, current = 0, lines = 0, ilen, i;
   char* buffer = NULL;
   int plen = 0;
-  _Bool display = 0;
+  _Bool display = 0, name_matches = 0;
   bzero(input_buffer, BUFFER_LENGTH);
+  char iname[IF_NAMESIZE];
 
   fprintf(stdout, "Input mode...\n");
   /* Parse toutes les lignes du fichier */
@@ -44,8 +45,14 @@ int bns_input(FILE* input, struct bns_filter_s filter, _Bool payload_only, _Bool
 	logger("FATAL: Buffer already allocated (line:%d)!!!\n", lines);
 	return EXIT_FAILURE;
       }
+      name_matches = 0;
       /* Exctraction de la taille. */
-      sscanf(input_buffer+4, "%d\n", &length);
+      sscanf(input_buffer+4, "%d,%s\n", &length, iname);
+      if(strlen(filter.iface) && strcmp(filter.iface, iname) != 0) {
+        length = 0;
+        continue;
+      }
+      name_matches = 1;
       fprintf(stderr, "Parse block length: %d\n", length);
       /* RAZ de l'input. */
       bzero(input_buffer, BUFFER_LENGTH);
@@ -60,6 +67,7 @@ int bns_input(FILE* input, struct bns_filter_s filter, _Bool payload_only, _Bool
       }
       continue;
     }
+    if(!name_matches) continue;
     /* Si la taille vaut 0 il y a un pb. */
     if(!length) {
       fprintf(stderr, "Invalid paquet length (line:%d)\n", lines);

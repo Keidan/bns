@@ -30,12 +30,14 @@
   #include <linux/tcp.h>
   #include <arpa/inet.h>
   #include <limits.h>
+  #include <net/if.h>
 
   typedef enum { BNS_PACKET_CONVERT_NONE, BNS_PACKET_CONVERT_HOST2NET, BNS_PACKET_CONVERT_NET2HOST} bns_packet_convert_et;
 
   struct bns_filter_s {
     __u32 ip;
     __u32 port;
+    char iface[IF_NAMESIZE];
   };
 
 

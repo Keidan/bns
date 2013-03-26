@@ -47,13 +47,12 @@
   /**
    * Fonction gerant le mode output et console.
    * @param output Fichier output ou NULL pour le mode console.
-   * @param iname Interface ou NULL pour any.
    * @param filter Filtre.
    * @param size Taille du fichier en Mb.
    * @param count Nombre max de fichiers.
    * @param usage Fonction usage.
    * @return 0 si succes sinon -1.
    */
-  int bns_output(FILE* output, char* outputname, char iname[IF_NAMESIZE], struct bns_filter_s filter, unsigned int size, unsigned int count, usage_fct usage);
+  int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsigned int size, unsigned int count, usage_fct usage);
 
 #endif /* __BNS_COMMON_H__ */

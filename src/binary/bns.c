@@ -156,13 +156,16 @@ int main(int argc, char** argv) {
 
   struct bns_filter_s filter = {
     .ip = long_host,
-    .port = port
+    .port = port,
   };
+  bzero(filter.iface, IF_NAMESIZE);
+  if(strlen(iname))
+    strcpy(filter.iface, iname);
   if(input) {
     free(outputname);
     return bns_input(input, filter, payload_only, raw);
   }
-  int ret = bns_output(output, outputname, iname, filter, size, count, usage);
+  int ret = bns_output(output, outputname, filter, size, count, usage);
   free(outputname);
   return ret;
 }
