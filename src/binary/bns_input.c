@@ -35,7 +35,7 @@ int bns_input(FILE* input, struct bns_filter_s filter, _Bool payload_only, _Bool
   bzero(input_buffer, BUFFER_LENGTH);
   char iname[IF_NAMESIZE];
 
-  fprintf(stdout, "Input mode...\n");
+  fprintf(stdout, "Input mode [filter{%s:%d:%d}]...\n", filter.iface, filter.ip, filter.port);
   /* Parse toutes les lignes du fichier */
   while(fgets(input_buffer, BUFFER_LENGTH, input) != NULL){
     lines++;
@@ -53,7 +53,7 @@ int bns_input(FILE* input, struct bns_filter_s filter, _Bool payload_only, _Bool
         continue;
       }
       name_matches = 1;
-      fprintf(stderr, "Parse block length: %d\n", length);
+      fprintf(stderr, "%s -> Parse block length: %d\n", iname, length);
       /* RAZ de l'input. */
       bzero(input_buffer, BUFFER_LENGTH);
       if(length) {
@@ -70,7 +70,8 @@ int bns_input(FILE* input, struct bns_filter_s filter, _Bool payload_only, _Bool
     if(!name_matches) continue;
     /* Si la taille vaut 0 il y a un pb. */
     if(!length) {
-      fprintf(stderr, "Invalid paquet length (line:%d)\n", lines);
+      if(strcmp(input_buffer, "\n") != 0)
+        fprintf(stderr, "Invalid paquet length (line:%d): '%s'\n", lines, input_buffer);
       bzero(input_buffer, BUFFER_LENGTH);
       continue;
     }
