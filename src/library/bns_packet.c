@@ -120,7 +120,7 @@ int decode_network_buffer(const char* buffer, __u32 length, struct bns_network_s
         net->tcp->check = htons(net->tcp->check);
       }
       if(!net->tcp->psh && !net->tcp->syn && (length - offset)) {
-	printf("TCP Trailer: Not supported (%d bytes)\n", (length - offset));
+	fprintf(stderr, "TCP Trailer: Not supported (%d bytes)\n", (length - offset));
 	offset += (length - offset);
       }
     } else if(protocol == IPPROTO_UDP) {
@@ -145,9 +145,9 @@ int decode_network_buffer(const char* buffer, __u32 length, struct bns_network_s
         net->udp->len = htons(net->udp->len);
       }
     } else if(protocol == IPPROTO_ICMP) {
-      printf("***ICMPv4 UNSUPPORTED ***\n");
+      fprintf(stderr, "***ICMPv4 UNSUPPORTED ***\n");
     } else if(protocol == IPPROTO_ICMPV6) {
-      printf("***ICMPv6 UNSUPPORTED ***\n");
+      fprintf(stderr, "***ICMPv6 UNSUPPORTED ***\n");
     }
   } else if(net->eth->h_proto == ETH_P_ARP) {
     struct arphdr *arp = (struct arphdr*)(buffer + offset);
@@ -186,7 +186,7 @@ int decode_network_buffer(const char* buffer, __u32 length, struct bns_network_s
       offset += sizeof(struct arphdr2);
     }
     if((length - offset)) {
-      printf("ARP Trailer: Not supported (%d bytes)\n", (length - offset));
+      fprintf(stderr, "ARP Trailer: Not supported (%d bytes)\n", (length - offset));
       offset += (length - offset);
     }
   }
