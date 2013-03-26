@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
       case 'h': usage(0); break;
       case '0': /* iface */
 	strncpy(iname, optarg, IF_NAMESIZE);
-	if(strncmp(iname, "any", IF_NAMESIZE))
+	if(strncmp(iname, "any", IF_NAMESIZE) == 0)
 	  bzero(iname, IF_NAMESIZE);
 	break;
       case '1': /* output */
