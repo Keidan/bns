@@ -75,7 +75,7 @@ void usage(int err) {
   fprintf(stdout, "\t--payload: Extract the payload only in stdout (only available with --input).\n");
   fprintf(stdout, "\t--raw: Print the payload in raw (only available with --input).\n");
   fprintf(stdout, "\t--size: Maximum size in Mb of the output file (only available with --output).\n");
-  fprintf(stdout, "\t--count: Maximum number of files (only available with --output).\n");
+  fprintf(stdout, "\t--count: Maximum number of files - max value %d (only available with --output).\n", BNS_OUTPUT_MAX_FILES);
   exit(err);
 }
 
@@ -146,6 +146,10 @@ int main(int argc, char** argv) {
 	break;
       case '8': /* count */
 	convert_to_int(optarg, count);
+        if(count > BNS_OUTPUT_MAX_FILES) {
+          fprintf(stderr, "Invalid count value (max:%d)\n", BNS_OUTPUT_MAX_FILES);
+          usage(EXIT_FAILURE);
+        }
 	break;
       default: /* '?' */
 	logger("Unknown option '%c'\n", opt);

@@ -30,7 +30,7 @@
   #include <string.h>
   #include <bns/bns.h>
 
-
+  #define BNS_OUTPUT_MAX_FILES 999
 
   typedef void(*usage_fct)(int);
 

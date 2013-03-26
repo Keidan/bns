@@ -104,8 +104,8 @@ int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsig
 	  /* test de la taille */
 	  if(size) {
 	    /* current depasse count on leave */
-	    if(count && count == current) {
-	      fprintf(stderr, "Max files (%d) reached.", current);
+	    if(count && (count == current || current > BNS_OUTPUT_MAX_FILES)) {
+	      fprintf(stderr, "Max files (%d/%d) reached.", current, count);
 	      release_network_buffer(&net);
 	      bns_utils_clear_ifaces(&ifaces);
 	      free(buffer);
@@ -118,8 +118,8 @@ int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsig
 	    if(fsize+ret >= rsize) {
 	      /* close du precedant fichier */
 	      fclose(output);
-	      /* allocation (+10 bien barbare) du nouveau nom */
-	      char* tmp = malloc(strlen(outputname) + 10);
+	      /* allocation du nouveau nom */
+	      char* tmp = malloc(strlen(outputname) + 5); /* name '.' 3 digits + '\0' */
 	      if(!tmp) {
 		logger("Unable to alloc memory for file name '%s.%d'.", outputname, current);
 		release_network_buffer(&net);
@@ -128,7 +128,7 @@ int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsig
 		return EXIT_FAILURE;
 	      }
 	      /* set du nom */
-	      sprintf(tmp, "%s.%d", outputname, current++);
+	      sprintf(tmp, "%s.%03d", outputname, current++);
 	      /* rename du fichier */
 	      if(rename(outputname , tmp) == -1) {
 		free(tmp);
