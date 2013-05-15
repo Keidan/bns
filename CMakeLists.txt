@@ -2,6 +2,16 @@ cmake_minimum_required(VERSION 2.6 FATAL_ERROR)
 
 project(bns C)
 
+if("${DISTRIBUTION}" MATCHES "debug")
+  set(DISTRIBUTION "debug")
+  set(CMAKE_CXX_FLAGS "-Wall -O0 -g -fPIC")
+  add_definitions(-DDEBUG)
+else()
+  set(CMAKE_C_FLAGS "-Wall -Werror -O2")
+  set(DISTRIBUTION "release")
+endif()
+message("-- Target mode: ${DISTRIBUTION}")
+
 # update directories
 set(BNS_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
 set(BNS_SRC_BIN_DIR ${CMAKE_SOURCE_DIR}/src/binary)
@@ -23,11 +33,6 @@ add_custom_target(clean-all
 # The version number.
 set (BNS_VERSION_MAJOR 2)
 set (BNS_VERSION_MINOR 5)
-
-# CFlags Release
-set(CMAKE_C_FLAGS "-Wall -Werror -O2")
-# CFlags Debug
-# set(CMAKE_C_FLAGS "-Wall -Werror -O0 -g")
 
 # To produce x86_64 binaries
 if("${CMAKE_BUILD_TYPE}" MATCHES "x86_64")
