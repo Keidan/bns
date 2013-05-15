@@ -22,7 +22,7 @@ add_custom_target(clean-all
 
 # The version number.
 set (BNS_VERSION_MAJOR 2)
-set (BNS_VERSION_MINOR 4)
+set (BNS_VERSION_MINOR 5)
 
 # CFlags Release
 set(CMAKE_C_FLAGS "-Wall -Werror -O2")
