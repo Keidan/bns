@@ -34,10 +34,11 @@
 
 
   struct iface_s {
-    struct list_head list;              /*!< Liste d'interfaces. */
-    char             name[IF_NAMESIZE]; /*!< Nom de l'interface. */
-    int              index;             /*!< Index de la carte. */
-    int              fd;                /*!< FD du socket utilise pour les io's/bind/select. */
+    struct list_head list;              /**< Liste d'interfaces. */
+    char             name[IF_NAMESIZE]; /**< Nom de l'interface. */
+    int              index;             /**< Index de la carte. */
+    int              fd;                /**< FD du socket utilise pour les io's/bind/select. */
+    int              family;            /**< Famille de l'interface. */
   };
 
 
@@ -95,8 +96,9 @@
    * @param name[in] Nom de l'interface.
    * @param index[in] Index de l'interface.
    * @param fd[in] FD du socket utilise.
+   * @param family[in] Famille de l'interface.
    */
-  void bns_utils_add_iface(struct iface_s* list, char name[IF_NAMESIZE], int index, int fd);
+  void bns_utils_add_iface(struct iface_s* list, char name[IF_NAMESIZE], int index, int fd, int family);
 
   /**
    * Suppression des elements de la liste.

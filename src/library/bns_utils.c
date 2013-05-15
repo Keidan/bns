@@ -39,7 +39,7 @@ int bns_utils_prepare_ifaces(struct iface_s *ifaces, int *maxfd, fd_set *rset, c
   struct ifreq ifr;
   struct sockaddr_ll sll;
   char *name;
-  int fd;
+  int fd, family;
 
   memset(&sll, 0, sizeof(sll));
   memset(&ifr, 0, sizeof(ifr));
@@ -95,6 +95,12 @@ int bns_utils_prepare_ifaces(struct iface_s *ifaces, int *maxfd, fd_set *rset, c
     sll.sll_ifindex = ifr.ifr_ifindex;
     sll.sll_protocol = htons(ETH_P_ALL); /* On veut ecouter tous les paquets */
 
+    /* recuperation de la famille de l'interface. */
+    if(ioctl(fd, SIOCGIFHWADDR, &ifr) == 0) {
+      family = ifr.ifr_hwaddr.sa_family;
+    } else
+      family = -1;
+
     /* Bind sur l'interface*/
     if((bind(fd, (struct sockaddr *)&sll, sizeof(sll))) == -1) {
       if_freenameindex(nameindex);
@@ -104,7 +110,7 @@ int bns_utils_prepare_ifaces(struct iface_s *ifaces, int *maxfd, fd_set *rset, c
     }
 
     /* ajout de l'interface */
-    bns_utils_add_iface(ifaces, name, ifr.ifr_ifindex, fd);
+    bns_utils_add_iface(ifaces, name, ifr.ifr_ifindex, fd, family);
   }
 
   /* Liberation des ressources */
@@ -113,7 +119,7 @@ int bns_utils_prepare_ifaces(struct iface_s *ifaces, int *maxfd, fd_set *rset, c
 }
 
 
-void bns_utils_add_iface(struct iface_s* list, char name[IF_NAMESIZE], int index, int fd) {
+void bns_utils_add_iface(struct iface_s* list, char name[IF_NAMESIZE], int index, int fd, int family) {
   struct iface_s* node;
   node = (struct iface_s*)malloc(sizeof(struct iface_s));
   if(!node) {
@@ -124,6 +130,7 @@ void bns_utils_add_iface(struct iface_s* list, char name[IF_NAMESIZE], int index
   strncpy(node->name, name, IF_NAMESIZE);
   node->fd = fd;
   node->index = index;
+  node->family = family;
   list_add_tail(&(node->list), &(list->list));
 }
 
