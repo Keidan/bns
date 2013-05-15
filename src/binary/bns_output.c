@@ -26,7 +26,7 @@ static long bns_output_fsize(FILE* file);
 
 #define SIZE_1MB 1048576
 
-int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsigned int size, unsigned int count, usage_fct usage) {
+int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsigned int size, unsigned int count, _Bool pcap, usage_fct usage) {
   struct iface_s ifaces;
   struct iface_s* iter;
   char* buffer;
@@ -34,6 +34,7 @@ int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsig
   fd_set rset;
   struct bns_network_s net;
   unsigned int current = 0;
+  _Bool first = 0;
   
   if(getuid()) usage(EXIT_FAILURE);
 
@@ -51,7 +52,7 @@ int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsig
     bns_utils_clear_ifaces(&ifaces); /* force le clear pour fermer les sockets deja ouverts */
     return EXIT_FAILURE;
   }
-
+    
   while(1) {
     /* Attente du prochain message */
     if (select(maxfd + 1, &rset, NULL, NULL, NULL) != -1) {
@@ -95,6 +96,7 @@ int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsig
 	if(filter.ip || filter.port)
 	  /* test de cette derniere */
           if(!match_from_simple_filter(&net, filter)) {
+	    logger("no matche");
 	    release_network_buffer(&net);
 	    free(buffer);
 	    continue;
@@ -150,12 +152,25 @@ int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsig
 		free(buffer);
 		return EXIT_FAILURE;
 	      }
+	      first = 0;
 	    }
 	  }
-	  /* Ecriture du buffer */
-	  fprintf(output, "---b%d,%s\n", ret, iter->name);
-	  bns_utils_print_hex(output, buffer, ret, 1);
-	  fflush(output);
+	  if(!pcap) {
+	    /* Ecriture du buffer */
+	    fprintf(output, "---b%d,%s\n", ret, iter->name);
+	    bns_utils_print_hex(output, buffer, ret, 1);
+	    fflush(output);
+	  } else {
+	    if(!first) {
+	      pcap_hdr_t ghdr = bns_pcap_global_hdr();
+	      fwrite(&ghdr, 1, sizeof(pcap_hdr_t), output);
+	      first = 1;
+	    }
+	    pcaprec_hdr_t phdr = bns_pcap_packet_hdr(ret, len);
+	    fwrite(&phdr, 1, sizeof(pcaprec_hdr_t), output);
+	    fwrite(buffer, 1, ret, output);
+	    fflush(output);
+	  }
 	} else {
 	  /* partie decodage + display */
 	  printf("iFace name: %s (%d bytes)\n", iter->name, ret);

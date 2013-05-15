@@ -50,9 +50,10 @@
    * @param filter Filtre.
    * @param size Taille du fichier en Mb.
    * @param count Nombre max de fichiers.
+   * @param pcap Use pcap format.
    * @param usage Fonction usage.
    * @return 0 si succes sinon -1.
    */
-  int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsigned int size, unsigned int count, usage_fct usage);
+  int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsigned int size, unsigned int count, _Bool pcap, usage_fct usage);
 
 #endif /* __BNS_COMMON_H__ */
