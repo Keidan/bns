@@ -96,7 +96,6 @@ int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsig
 	if(filter.ip || filter.port)
 	  /* test de cette derniere */
           if(!match_from_simple_filter(&net, filter)) {
-	    logger("no matche");
 	    release_network_buffer(&net);
 	    free(buffer);
 	    continue;
