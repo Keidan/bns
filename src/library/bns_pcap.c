@@ -27,6 +27,7 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/time.h>
+#include <time.h>
 
 
 
@@ -35,11 +36,12 @@ pcap_hdr_t bns_pcap_global_hdr(void) {
   memset(&hdr, 0, sizeof(pcap_hdr_t));
   hdr.magic_number = BNS_PCAP_MAGIC_NATIVE;
   hdr.version_major = BNS_PCAP_VERSION_MAJOR;
-  hdr.version_minor = BNS_PCAP_VERSION_MINOR;
-  hdr.thiszone = BNS_PCAP_TZONE_UTC;
+  hdr.version_minor = BNS_PCAP_VERSION_MINOR;  
+  tzset(); /* force le set de la variable timezone */
+  hdr.thiszone = timezone;
   hdr.sigfigs = 0;
-  hdr.snaplen = 65535; /* a changer... */
-  hdr.network = 1;     /* a changer... */
+  hdr.snaplen = BNS_PCAP_SNAPLEN;
+  hdr.network = BNS_PCAP_LINKTYPE_ETHERNET;
   return hdr;
 }
 

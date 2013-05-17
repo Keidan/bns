@@ -26,12 +26,13 @@
 
   #include <linux/if_ether.h>
 
-  #define BNS_PCAP_VERSION_MAJOR 2
-  #define BNS_PCAP_VERSION_MINOR 4
-  #define BNS_PCAP_MAGIC_NATIVE  0xa1b2c3d4
-  #define BNS_PCAP_MAGIC_SWAPPED 0xd4c3b2a1
-  #define BNS_PCAP_TZONE_UTC     0
-  #define BNS_PCAP_TZONE_CET     -3600
+  #define BNS_PCAP_VERSION_MAJOR     2
+  #define BNS_PCAP_VERSION_MINOR     4
+  #define BNS_PCAP_MAGIC_NATIVE      0xa1b2c3d4
+  #define BNS_PCAP_MAGIC_SWAPPED     0xd4c3b2a1
+  #define BNS_PCAP_LINKTYPE_ETHERNET 1
+  #define BNS_PCAP_SNAPLEN           65535
+
   /*
     Source: http://wiki.wireshark.org/Development/LibpcapFileFormat
     Packet structure:
