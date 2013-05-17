@@ -58,7 +58,10 @@ int bns_utils_prepare_ifaces(struct iface_s *ifaces, int *maxfd, fd_set *rset, c
   i = 0; /* init */
   while(1){
     if(!nameindex[i].if_name) break;
-    if(strlen(iname) && strncmp(iname, nameindex[i].if_name, IF_NAMESIZE) != 0) continue;
+    if(strlen(iname) && strncmp(iname, nameindex[i].if_name, IF_NAMESIZE) != 0) {
+    	i++;
+    	continue;
+    }
     /* Recuperation du nom qui sera utilise plus bas. */
     name = nameindex[i++].if_name;
 
