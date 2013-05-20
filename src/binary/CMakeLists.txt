@@ -2,7 +2,7 @@
 # configure a header file to pass some of the CMake settings
 # to the source code
 configure_file (
-  "${CMAKE_SOURCE_DIR}/scripts/bns_config.h.in"
+  "${BNS_SRC_BIN_DIR}/bns_config.h.in"
   "${BNS_SRC_BIN_DIR}/bns_config.h"
 )
 

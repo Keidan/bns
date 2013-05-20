@@ -24,15 +24,17 @@ set(LIBRARY_OUTPUT_PATH ${BNS_BINARY_DIR})
 include_directories("${BNS_INCLUDE_DIR}")
 link_directories("${LIBRARY_OUTPUT_PATH}")
 
-# removes generated files
+# add custom targets
 add_custom_target(clean-all
    COMMAND ${CMAKE_BUILD_TOOL} clean
-   COMMAND ${CMAKE_COMMAND} -P scripts/clean-all.cmake
+   COMMAND ${CMAKE_COMMAND} -P cmake/clean-all.cmake
 )
-
+add_custom_target(doxygen
+   COMMAND ${CMAKE_COMMAND} -P cmake/doxygen.cmake
+)
 # The version number.
 set (BNS_VERSION_MAJOR 2)
-set (BNS_VERSION_MINOR 5)
+set (BNS_VERSION_MINOR 6)
 
 # To produce x86_64 binaries
 if("${CMAKE_BUILD_TYPE}" MATCHES "x86_64")

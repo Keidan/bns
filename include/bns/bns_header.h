@@ -68,10 +68,10 @@
   /**
    * @fn int bns_header_decode_buffer(const char* buffer, __u32 length, struct bns_network_s *net, bns_packet_convert_et convert)
    * @brief Decodage des paquets en fonction du buffer.
-   * @param buffer[in] Buffer de donnee.
-   * @param length[in] Taille du buffer.
-   * @param net[ou] Liste des entetes.
-   * @param convert[in] Conversion de certains champs des differentes entetes.
+   * @param buffer Buffer de donnee.
+   * @param length Taille du buffer.
+   * @param net Liste des entetes.
+   * @param convert Conversion de certains champs des differentes entetes.
    * @return -1 sur erreur sinon la taill de la payload (peut etre 0).
    */
   int bns_header_decode_buffer(const char* buffer, __u32 length, struct bns_network_s *net, bns_packet_convert_et convert);
@@ -79,15 +79,15 @@
   /**
    * @fn void bns_header_release_buffer(struct bns_network_s *net)
    * @brief Liberation des ressources allouee par decode_network_buffer.
-   * @param net[in,out] Liste des entetes a liberer.
+   * @param net Liste des entetes a liberer.
    */
   void bns_header_release_buffer(struct bns_network_s *net);
 
   /**
    * @fn _Bool bns_header_match_from_simple_filter(struct bns_network_s *net, struct bns_filter_s filter)
    * @brief Test si le regle matche ou non.
-   * @param net[in] entetes.
-   * @param filter[in] Filtre a tester.
+   * @param net entetes.
+   * @param filter Filtre a tester.
    * @return Retourne 1 si match.
    */
   _Bool bns_header_match_from_simple_filter(struct bns_network_s *net, struct bns_filter_s filter);
@@ -95,44 +95,44 @@
   /**
    * @fn void bns_header_print_headers(const char* buffer, __u32 length, struct bns_network_s net)
    * @brief Affichage des entetes.
-   * @param buffer[in] Buffer de donnee.
-   * @param length[in] Taille du buffer.
-   * @param net[in] Entetes.
+   * @param buffer Buffer de donnee.
+   * @param length Taille du buffer.
+   * @param net Entetes.
    */
   void bns_header_print_headers(const char* buffer, __u32 length, struct bns_network_s net);
 
   /**
    * @fn void bns_header_print_eth(struct ethhdr *eth)
    * @brief Affichage de l'entete Ethernet.
-   * @param eth[in] Entete Ethernet.
+   * @param eth Entete Ethernet.
    */
   void bns_header_print_eth(struct ethhdr *eth);
 
   /**
-   * @fn void bns_header_print_arp(struct arphdrs *arp)
+   * @fn void bns_header_print_arp(struct arphdrs *arpp)
    * @brief Affichage de l'entete ARP.
-   * @param arp[in] Entete ARP.
+   * @param arpp Entete ARP.
    */
-  void bns_header_print_arp(struct arphdrs *arp);
+  void bns_header_print_arp(struct arphdrs *arpp);
 
   /**
    * @fn void bns_header_print_ip(struct iphdr* ipv4)
    * @brief Affichage de l'entete IPv4/IPv6.
-   * @param ipv4[in] Entete IPv4.
+   * @param ipv4 Entete IPv4.
    */
   void bns_header_print_ip(struct iphdr* ipv4);
 
   /**
    * @fn void bns_header_print_upd(struct udphdr *udp)
    * @brief Affichage de l'entete UDP.
-   * @param udp[in] Entete UDP.
+   * @param udp Entete UDP.
    */
   void bns_header_print_upd(struct udphdr *udp);
 
   /**
    * @fn void bns_header_print_tcp(struct tcphdr *tcp)
    * @brief Affichage de l'entete TCP.
-   * @param tcp[in] Entet TCP.
+   * @param tcp Entet TCP.
    */
   void bns_header_print_tcp(struct tcphdr *tcp);
 

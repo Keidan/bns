@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * @file bns_common.c
+ * @file bns_common.h
  * @author Keidan
  * @date 03/01/2013
  * @par Project
@@ -49,6 +49,7 @@
    * @fn int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsigned int size, unsigned int count, _Bool pcap, int *packets, usage_fct usage)
    * @brief Fonction gerant le mode output et console.
    * @param output Fichier output ou NULL pour le mode console.
+   * @param outputname Nom du fichier.
    * @param filter Filtre.
    * @param size Taille du fichier en Mb.
    * @param count Nombre max de fichiers.

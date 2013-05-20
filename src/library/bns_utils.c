@@ -91,10 +91,10 @@
 
 /**
  * Liste toutes les interfaces et les ajoutent a la liste (IMPORTANT: apres appel de cette methode des sockets sont ouverts).
- * @param ifaces[in,out] Liste des interfaces (la taille vaut 1 ou 0 si iname n'est pas vide).
- * @param maxfd[in,out] Utilise pour le select.
- * @param rset[in,out] fd_set utilise pour le select.
- * @param iname[in] Demande la configuration d'une interface.
+ * @param ifaces Liste des interfaces (la taille vaut 1 ou 0 si iname n'est pas vide).
+ * @param maxfd Utilise pour le select.
+ * @param rset fd_set utilise pour le select.
+ * @param iname Demande la configuration d'une interface.
  * @return -1 en cas d'erreur sinon 0.
  */
 int bns_utils_prepare_ifaces(struct iface_s *ifaces, int *maxfd, fd_set *rset, const char iname[IF_NAMESIZE]) {
@@ -184,11 +184,11 @@ int bns_utils_prepare_ifaces(struct iface_s *ifaces, int *maxfd, fd_set *rset, c
 /**
  * @fn void bns_utils_add_iface(struct iface_s* list, char name[IF_NAMESIZE], int index, int fd, int family)
  * @brief Ajout d'un interface a la liste.
- * @param list[in,out] Liste d'interfaces.
- * @param name[in] Nom de l'interface.
- * @param index[in] Index de l'interface.
- * @param fd[in] FD du socket utilise.
- * @param family[in] Famille de l'interface.
+ * @param list Liste d'interfaces.
+ * @param name Nom de l'interface.
+ * @param index Index de l'interface.
+ * @param fd FD du socket utilise.
+ * @param family Famille de l'interface.
  */
 void bns_utils_add_iface(struct iface_s* list, char name[IF_NAMESIZE], int index, int fd, int family) {
   struct iface_s* node;
@@ -205,7 +205,11 @@ void bns_utils_add_iface(struct iface_s* list, char name[IF_NAMESIZE], int index
   list_add_tail(&(node->list), &(list->list));
 }
 
-
+/**
+ * @fn void bns_utils_clear_ifaces(struct iface_s* ifaces)
+ * @brief Suppression des elements de la liste.
+ * @param ifaces Liste a vider.
+ */
 void bns_utils_clear_ifaces(struct iface_s* ifaces) {
   struct iface_s* iter;
   while(!list_empty(&ifaces->list) ) {
@@ -219,8 +223,8 @@ void bns_utils_clear_ifaces(struct iface_s* ifaces) {
 /**
  * @fn _Bool bns_utils_device_is_up(int fd, char name[IF_NAMESIZE])
  * @brief Effectue un test pour savoir si le device est up
- * @param fd[in] FD pour l'ioctl.
- * @param name[in] Nom du device.
+ * @param fd FD pour l'ioctl.
+ * @param name Nom du device.
  * @return Vrai si up.
  */
 _Bool bns_utils_device_is_up(int fd, char name[IF_NAMESIZE]) {
@@ -241,7 +245,7 @@ _Bool bns_utils_device_is_up(int fd, char name[IF_NAMESIZE]) {
 /**
  * @fn __u32 bns_utils_datas_available(int fd)
  * @brief Recuperation du nombre de donnees a lire.
- * @param fd[in] fd a tester.
+ * @param fd fd a tester.
  * @return Nb donnees a lire. 
  */
 __u32 bns_utils_datas_available(int fd) {
@@ -258,7 +262,7 @@ __u32 bns_utils_datas_available(int fd) {
 /**
  * @fn int bns_utils_is_ipv4(const char* ip)
  * @brief Test si l'adresse ip est valide.
- * @param ip[in] Adresse IP.
+ * @param ip Adresse IP.
  * @return -1 si erreur, 0 si non match, 1 si match.
  */
 int bns_utils_is_ipv4(const char* ip) {    
@@ -273,8 +277,8 @@ int bns_utils_is_ipv4(const char* ip) {
 /**
  * @fn int bns_utils_hostname_to_ip(const char *hostname, char* ip)
  * @brief Recuperation de l'adresse ip en fonction du nom de host.
- * @param hostname[in] Nom du host.
- * @param name[out] Adresse IP.
+ * @param hostname Nom du host.
+ * @param ip Adresse IP.
  * @return -1 si erreur sinon 0.
  */
 int bns_utils_hostname_to_ip(const char *hostname, char* ip) {
@@ -294,11 +298,12 @@ int bns_utils_hostname_to_ip(const char *hostname, char* ip) {
 }
 
 /**
- * @fn void bns_utils_print_hex(FILE* std, char* buffer, int len, _Bool print_str)
+ * @fn void bns_utils_print_hex(FILE* std, char* buffer, int len, _Bool print_raw)
  * @brief Affichage d'un packet (wireshark like).
- * @param std[in] Flux de sortie.
- * @param buffer[in] Packet.
- * @param len[in] Taille du packet.
+ * @param std Flux de sortie.
+ * @param buffer Packet.
+ * @param len Taille du packet.
+ * @param print_raw Affichage en raw mode.
  */
 void bns_utils_print_hex(FILE* std, char* buffer, int len, _Bool print_raw) {
   int i = 0, max = PRINT_HEX_MAX_PER_LINES, loop = len;
@@ -342,7 +347,7 @@ void bns_utils_print_hex(FILE* std, char* buffer, int len, _Bool print_raw) {
 /**
  * @fn unsigned int bns_utils_ip_to_long(const char* s)
  * @brief Transforme une adresse IP en long.
- * @param s[in] IP a transformer.
+ * @param s IP a transformer.
  * @return Long.
  */
 const char* bns_utils_long_to_ip(unsigned int v)  {
@@ -354,7 +359,7 @@ const char* bns_utils_long_to_ip(unsigned int v)  {
 /**
  * @fn unsigned int bns_utils_ip_to_long(const char* s)
  * @brief Transforme une adresse IP en long.
- * @param s[in] IP a transformer.
+ * @param s IP a transformer.
  * @return Long.
  */
 unsigned int bns_utils_ip_to_long(const char* s) {
@@ -385,7 +390,7 @@ void bns_utils_size_to_string(long size, char ssize[BNS_UTILS_MAX_SSIZE]) {
 /**
  * @fn long bns_utils_fsize(FILE* file)
  * @brief Recupere la taille du fichier.
- * @param file[in] Taille.
+ * @param file Taille.
  * @return Long.
  */
 long bns_utils_fsize(FILE* file) {

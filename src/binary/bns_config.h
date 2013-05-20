@@ -25,6 +25,6 @@
 
   // the configured options and settings for BNS
   #define BNS_VERSION_MAJOR 2
-  #define BNS_VERSION_MINOR 5
+  #define BNS_VERSION_MINOR 6
 
 #endif /* __BNS_CONFIG_H__ */
