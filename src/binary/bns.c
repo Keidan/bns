@@ -31,6 +31,7 @@
 
 static FILE* output = NULL;
 static FILE* input = NULL;
+static int packets = 0;
 
 static const struct option long_options[] = { 
     { "help"   , 0, NULL, 'h' },
@@ -175,20 +176,25 @@ int main(int argc, char** argv) {
     free(outputname);
     return bns_input(input, filter, payload_only, raw);
   }
-  int ret = bns_output(output, outputname, filter, size, count, pcap, usage);
+  int ret = bns_output(output, outputname, filter, size, count, pcap, &packets, usage);
   free(outputname);
   return ret;
 }
 
 
 static void bns_sig_int(sig_t s) {
+  printf("\n"); /* saute le ^C qui s'affiche dans la console... */
   exit(0); /* call atexit */
 }
 
 static void bns_cleanup(void) {
+  char ssize[BNS_UTILS_MAX_SSIZE];
   /* si les fichiers ne sont pas sur stdxxx */
-  if(input && fileno(input) > 2)
-    fclose(input);
-  if(output && fileno(output) > 2)
-    fclose(output);
+  if(input) fclose(input), input = NULL;
+  if(output) {
+    fprintf(stderr, "%d packets captured.\n", packets);
+    bns_utils_size_to_string(bns_utils_fsize(output), ssize);
+    fprintf(stderr, "File size %s.\n", ssize);
+    fclose(output), output = NULL;
+  }
 }

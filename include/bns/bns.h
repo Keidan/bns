@@ -24,9 +24,8 @@
   #define __BNS_H__
 
   #include <bns/bns_logger.h>
-  #include <bns/bns_packet.h>
+  #include <bns/bns_header.h>
   #include <bns/bns_utils.h>
-  #include <bns/bns_pcap.h>
 
 
 #endif /* __BNS_H__ */

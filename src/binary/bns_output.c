@@ -22,11 +22,22 @@
  */
 #include "bns_common.h"
 
-static long bns_output_fsize(FILE* file);
-
 #define SIZE_1MB 1048576
 
-int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsigned int size, unsigned int count, _Bool pcap, usage_fct usage) {
+/**
+ * @fn int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsigned int size, unsigned int count, _Bool pcap, int *packets, usage_fct usage)
+ * @brief Fonction gerant le mode output et console.
+ * @param output Fichier output ou NULL pour le mode console.
+ * @param filter Filtre.
+ * @param size Taille du fichier en Mb.
+ * @param count Nombre max de fichiers.
+ * @param pcap Use pcap format.
+ * @param packets Nombre de paquets.
+ * @param usage Fonction usage.
+ * @return 0 si succes sinon -1.
+ */
+
+int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsigned int size, unsigned int count, _Bool pcap, int *packets, usage_fct usage) {
   struct iface_s ifaces;
   struct iface_s* iter;
   char* buffer;
@@ -43,7 +54,7 @@ int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsig
   else 
     fprintf(stdout, "Console mode [filter{%s:%d:%d}]...\n", filter.iface, filter.ip, filter.port);
 
-
+  *packets = 0;
   /* RAZ du FD */
   FD_ZERO(&rset);
 
@@ -86,7 +97,7 @@ int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsig
 	}
 
 	/* decodage des differentes entetes */
-	if(decode_network_buffer(buffer, ret, &net, BNS_PACKET_CONVERT_NET2HOST) == -1) {
+	if(bns_header_decode_buffer(buffer, ret, &net, BNS_PACKET_CONVERT_NET2HOST) == -1) {
 	  free(buffer);
 	  bns_utils_clear_ifaces(&ifaces);
 	  logger("FATAL: DECODE FAILED\n");
@@ -95,8 +106,8 @@ int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsig
         /* si un regle est appliquee */
 	if(filter.ip || filter.port)
 	  /* test de cette derniere */
-          if(!match_from_simple_filter(&net, filter)) {
-	    release_network_buffer(&net);
+          if(!bns_header_match_from_simple_filter(&net, filter)) {
+	    bns_header_release_buffer(&net);
 	    free(buffer);
 	    continue;
 	  } 
@@ -107,13 +118,13 @@ int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsig
 	    /* current depasse count on leave */
 	    if(count && (count == current || current > BNS_OUTPUT_MAX_FILES)) {
 	      fprintf(stderr, "Max files (%d/%d) reached.", current, count);
-	      release_network_buffer(&net);
+	      bns_header_release_buffer(&net);
 	      bns_utils_clear_ifaces(&ifaces);
 	      free(buffer);
 	      exit(0);
 	    } 
 	    /* recuperation de la taille du fichier */
-	    long fsize = bns_output_fsize(output);
+	    long fsize = bns_utils_fsize(output);
 	    long rsize = SIZE_1MB * size;
 	    /* si la taille du fichier + le packet depasse la taille voulue */
 	    if(fsize+ret >= rsize) {
@@ -123,7 +134,7 @@ int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsig
 	      char* tmp = malloc(strlen(outputname) + 5); /* name '.' 3 digits + '\0' */
 	      if(!tmp) {
 		logger("Unable to alloc memory for file name '%s.%d'.", outputname, current);
-		release_network_buffer(&net);
+		bns_header_release_buffer(&net);
 		bns_utils_clear_ifaces(&ifaces);
 		free(buffer);
 		return EXIT_FAILURE;
@@ -135,7 +146,7 @@ int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsig
 		free(tmp);
 		free(outputname);
 		logger("Error renaming file: (%d) %s", errno, strerror(errno));
-		release_network_buffer(&net);
+		bns_header_release_buffer(&net);
 		bns_utils_clear_ifaces(&ifaces);
 		free(buffer);
 		return EXIT_FAILURE;
@@ -146,7 +157,7 @@ int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsig
 	      if(!output) {
 		free(outputname);
 		logger("Unable to open file '%s': (%d) %s\n", optarg, errno, strerror(errno));
-		release_network_buffer(&net);
+		bns_header_release_buffer(&net);
 		bns_utils_clear_ifaces(&ifaces);
 		free(buffer);
 		return EXIT_FAILURE;
@@ -159,17 +170,8 @@ int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsig
 	    fprintf(output, "---b%d,%s\n", ret, iter->name);
 	    bns_utils_print_hex(output, buffer, ret, 1);
 	    fflush(output);
-	  } else {
-	    if(!first) {
-	      pcap_hdr_t ghdr = bns_pcap_global_hdr();
-	      fwrite(&ghdr, 1, sizeof(pcap_hdr_t), output);
-	      first = 1;
-	    }
-	    pcaprec_hdr_t phdr = bns_pcap_packet_hdr(ret, len);
-	    fwrite(&phdr, 1, sizeof(pcaprec_hdr_t), output);
-	    fwrite(buffer, 1, ret, output);
-	    fflush(output);
-	  }
+	  } else
+	    bns_utils_write_pcap_packet(output, buffer, len, ret, &first);
 	} else {
 	  /* partie decodage + display */
 	  printf("iFace name: %s (%d bytes)\n", iter->name, ret);
@@ -180,8 +182,9 @@ int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsig
 	  /* plus besoin du buffer */
 	  free(buffer);
 	}
+	(*packets)++;
 	/* liberation des entetes */
-	release_network_buffer(&net);
+	bns_header_release_buffer(&net);
       }
     }
   }
@@ -189,15 +192,4 @@ int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsig
   /* liberation des resources ; bien que dans ce cas unreachable */
   bns_utils_clear_ifaces(&ifaces);
   return EXIT_SUCCESS;
-}
-
-static long bns_output_fsize(FILE* file) {
-  long size = 0L, old = 0L;
-  if (file) {
-    old = ftell(file);
-    fseek(file, 0L, SEEK_END);
-    size = ftell(file);
-    fseek(file, old, SEEK_SET);
-  }
-  return size;
 }

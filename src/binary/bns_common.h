@@ -35,7 +35,8 @@
   typedef void(*usage_fct)(int);
 
   /**
-   * Fonction gerant le mode input.
+   * @fn int bns_input(FILE* input, struct bns_filter_s filter, _Bool payload_only, _Bool raw)
+   * @brief Fonction gerant le mode input.
    * @param input Fichier input.
    * @param filter Filtre.
    * @param payload_only Retire uniquement la payload.
@@ -45,15 +46,17 @@
   int bns_input(FILE* input, struct bns_filter_s filter, _Bool payload_only, _Bool raw);
 
   /**
-   * Fonction gerant le mode output et console.
+   * @fn int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsigned int size, unsigned int count, _Bool pcap, int *packets, usage_fct usage)
+   * @brief Fonction gerant le mode output et console.
    * @param output Fichier output ou NULL pour le mode console.
    * @param filter Filtre.
    * @param size Taille du fichier en Mb.
    * @param count Nombre max de fichiers.
    * @param pcap Use pcap format.
+   * @param packets Nombre de paquets.
    * @param usage Fonction usage.
    * @return 0 si succes sinon -1.
    */
-  int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsigned int size, unsigned int count, _Bool pcap, usage_fct usage);
+  int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsigned int size, unsigned int count, _Bool pcap, int *packets, usage_fct usage);
 
 #endif /* __BNS_COMMON_H__ */

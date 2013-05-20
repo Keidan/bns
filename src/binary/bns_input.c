@@ -26,6 +26,16 @@
 
 static char input_buffer[BUFFER_LENGTH];
 
+/**
+ * @fn int bns_input(FILE* input, struct bns_filter_s filter, _Bool payload_only, _Bool raw)
+ * @brief Fonction gerant le mode input.
+ * @param input Fichier input.
+ * @param filter Filtre.
+ * @param payload_only Retire uniquement la payload.
+ * @param raw Affiche la payload en raw.
+ * @return 0 si succes sinon -1.
+ */
+
 int bns_input(FILE* input, struct bns_filter_s filter, _Bool payload_only, _Bool raw) {
   struct bns_network_s net;
   __u32 length = 0, current = 0, lines = 0, ilen, i;
@@ -92,7 +102,7 @@ int bns_input(FILE* input, struct bns_filter_s filter, _Bool payload_only, _Bool
     /* Fin du bloc */
     if(current == length) {
       /* decodage des differentes entetes */
-      if((plen = decode_network_buffer(buffer, length, &net, BNS_PACKET_CONVERT_NET2HOST)) == -1) {
+      if((plen = bns_header_decode_buffer(buffer, length, &net, BNS_PACKET_CONVERT_NET2HOST)) == -1) {
 	free(buffer);
 	logger("FATAL: DECODE FAILED (line:%d)\n", lines);
 	exit(EXIT_FAILURE); /* pas besoin de continuer... */
@@ -101,7 +111,7 @@ int bns_input(FILE* input, struct bns_filter_s filter, _Bool payload_only, _Bool
       /* si un regle est appliquee */
       if(filter.ip || filter.port) {
         /* test de cette derniere */
-        if(match_from_simple_filter(&net, filter)) display = 1;
+        if(bns_header_match_from_simple_filter(&net, filter)) display = 1;
       } else display = 1;
       if(display) {
         if(payload_only) {
@@ -114,7 +124,7 @@ int bns_input(FILE* input, struct bns_filter_s filter, _Bool payload_only, _Bool
         } else
 	  bns_header_print_headers(buffer, length, net);
       }
-      release_network_buffer(&net);
+      bns_header_release_buffer(&net);
       /* Liberation du buffer et RAZ des index. */
       length = current = 0;
       free(buffer), buffer = NULL;
