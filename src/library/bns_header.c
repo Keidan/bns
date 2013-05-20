@@ -28,7 +28,7 @@
 #include <bns/bns_logger.h>
 
 
-#define SET_NSET(cond) (!!(cond)), (cond ? "Set" : "Not Set")
+#define SET_NSET(cond) (!!(cond)), BNS_HEADER_SET_NSET(cond)
 
 /** 
  * Pour eviter les pb de support et surtout de compilation la structure est 

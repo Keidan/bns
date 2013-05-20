@@ -88,9 +88,10 @@ int main(int argc, char** argv) {
   __u16 port = 0;
   _Bool payload_only = 0, raw = 0;
   __u32 long_host = 0, size = 0, count = 0;
-  char* outputname = NULL;
+  char fname[FILENAME_MAX];
   _Bool pcap = 0;
 
+  bzero(fname, FILENAME_MAX);
   bzero(iname, IF_NAMESIZE);
   bzero(host, _POSIX_HOST_NAME_MAX);
   
@@ -109,23 +110,18 @@ int main(int argc, char** argv) {
 	  bzero(iname, IF_NAMESIZE);
 	break;
       case '1': /* output */
-	if(outputname) free(outputname), outputname = NULL;
-	if(!(outputname = (char*)malloc(strlen(optarg)))) {
-	  logger("Unable to alloc memory for file name '%s'\n", optarg);
-	  usage(EXIT_FAILURE);
-	}
-	strcpy(outputname, optarg);
-	output = fopen(outputname, "w+");
+	strncpy(fname, optarg, FILENAME_MAX);
+	output = fopen(fname, "w+");
 	if(!output) {
-	  free(outputname);
 	  logger("Unable to open file '%s': (%d) %s\n", optarg, errno, strerror(errno));
 	  usage(EXIT_FAILURE);
 	}
 	break;
       case '2': /* input */
-	input = fopen(optarg, "r");
+	strncpy(fname, optarg, FILENAME_MAX);
+	input = fopen(fname, "r");
 	if(!input) {
-	  logger("File '%s' not found\n", optarg);
+	  logger("Unable to open file '%s': (%d) %s\n", optarg, errno, strerror(errno));
 	  usage(EXIT_FAILURE);
 	}
 	break;
@@ -172,12 +168,16 @@ int main(int argc, char** argv) {
   bzero(filter.iface, IF_NAMESIZE);
   if(strlen(iname))
     strcpy(filter.iface, iname);
-  if(input) {
-    free(outputname);
+
+  fprintf(stdout, "Mode: ");
+  if(input)       fprintf(stdout, "Input ('%s')\n", fname);
+  else if(output) fprintf(stdout, "Ouput ('%s')\n", fname);
+  else            fprintf(stdout, "Console\n");
+  fprintf(stdout, "Filter: [%s]%s:%d\n",  strlen(iname) ? iname : "*", strlen(host) ? host : "*", port);
+  fprintf(stdout, "PCAP support: %s\n", BNS_HEADER_SET_NSET(pcap));
+  if(input)
     return bns_input(input, filter, payload_only, raw);
-  }
-  int ret = bns_output(output, outputname, filter, size, count, pcap, &packets, usage);
-  free(outputname);
+  int ret = bns_output(output, fname, filter, size, count, pcap, &packets, usage);
   return ret;
 }
 

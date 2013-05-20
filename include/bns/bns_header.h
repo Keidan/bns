@@ -33,6 +33,8 @@
   #include <limits.h>
   #include <net/if.h>
 
+  #define BNS_HEADER_SET_NSET(cond) (cond ? "Set" : "Not Set")
+
   typedef enum { BNS_PACKET_CONVERT_NONE, BNS_PACKET_CONVERT_HOST2NET, BNS_PACKET_CONVERT_NET2HOST} bns_packet_convert_et;
 
   struct bns_filter_s {

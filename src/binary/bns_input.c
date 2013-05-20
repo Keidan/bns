@@ -45,7 +45,6 @@ int bns_input(FILE* input, struct bns_filter_s filter, _Bool payload_only, _Bool
   bzero(input_buffer, BUFFER_LENGTH);
   char iname[IF_NAMESIZE];
 
-  fprintf(stdout, "Input mode [filter{%s:%d:%d}]...\n", filter.iface, filter.ip, filter.port);
   /* Parse toutes les lignes du fichier */
   while(fgets(input_buffer, BUFFER_LENGTH, input) != NULL){
     lines++;

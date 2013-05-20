@@ -49,11 +49,6 @@ int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsig
   
   if(getuid()) usage(EXIT_FAILURE);
 
-  if(output)
-    fprintf(stdout, "Ouput mode [file:'%s'][filter{%s:%d:%d}]...\n", outputname, filter.iface, filter.ip, filter.port);
-  else 
-    fprintf(stdout, "Console mode [filter{%s:%d:%d}]...\n", filter.iface, filter.ip, filter.port);
-
   *packets = 0;
   /* RAZ du FD */
   FD_ZERO(&rset);
