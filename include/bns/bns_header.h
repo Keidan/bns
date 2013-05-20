@@ -1,8 +1,8 @@
 /**
  *******************************************************************************
- * @file bns_packet.h
+ * @file bns_header.h
  * @author Keidan
- * @date 03/01/2013
+ * @date 19/05/2013
  * @par Project
  * bns
  *
@@ -20,8 +20,9 @@
  *
  *******************************************************************************
  */
-#ifndef __BNS_PACKET_H__
-  #define __BNS_PACKET_H__
+
+#ifndef __BNS_HEADER_H__
+  #define __BNS_HEADER_H__
 
 
   #include <netinet/if_ether.h>
@@ -63,31 +64,35 @@
   };
 
   /**
-   * Decodage des paquets en fonction du buffer.
+   * @fn int bns_header_decode_buffer(const char* buffer, __u32 length, struct bns_network_s *net, bns_packet_convert_et convert)
+   * @brief Decodage des paquets en fonction du buffer.
    * @param buffer[in] Buffer de donnee.
    * @param length[in] Taille du buffer.
    * @param net[ou] Liste des entetes.
    * @param convert[in] Conversion de certains champs des differentes entetes.
    * @return -1 sur erreur sinon la taill de la payload (peut etre 0).
    */
-  int decode_network_buffer(const char* buffer, __u32 length, struct bns_network_s *net, bns_packet_convert_et convert);
+  int bns_header_decode_buffer(const char* buffer, __u32 length, struct bns_network_s *net, bns_packet_convert_et convert);
 
   /**
-   * Liberation des ressources allouee par decode_network_buffer.
+   * @fn void bns_header_release_buffer(struct bns_network_s *net)
+   * @brief Liberation des ressources allouee par decode_network_buffer.
    * @param net[in,out] Liste des entetes a liberer.
    */
-  void release_network_buffer(struct bns_network_s *net);
+  void bns_header_release_buffer(struct bns_network_s *net);
 
   /**
-   * Test si le regle matche ou non.
+   * @fn _Bool bns_header_match_from_simple_filter(struct bns_network_s *net, struct bns_filter_s filter)
+   * @brief Test si le regle matche ou non.
    * @param net[in] entetes.
    * @param filter[in] Filtre a tester.
    * @return Retourne 1 si match.
    */
-  _Bool match_from_simple_filter(struct bns_network_s *net, struct bns_filter_s filter);
+  _Bool bns_header_match_from_simple_filter(struct bns_network_s *net, struct bns_filter_s filter);
 
   /**
-   * Affichage des entetes.
+   * @fn void bns_header_print_headers(const char* buffer, __u32 length, struct bns_network_s net)
+   * @brief Affichage des entetes.
    * @param buffer[in] Buffer de donnee.
    * @param length[in] Taille du buffer.
    * @param net[in] Entetes.
@@ -95,34 +100,38 @@
   void bns_header_print_headers(const char* buffer, __u32 length, struct bns_network_s net);
 
   /**
-   * Affichage de l'entete Ethernet.
+   * @fn void bns_header_print_eth(struct ethhdr *eth)
+   * @brief Affichage de l'entete Ethernet.
    * @param eth[in] Entete Ethernet.
    */
   void bns_header_print_eth(struct ethhdr *eth);
 
-
   /**
-   * Affichage de l'entete ARP.
+   * @fn void bns_header_print_arp(struct arphdrs *arp)
+   * @brief Affichage de l'entete ARP.
    * @param arp[in] Entete ARP.
    */
   void bns_header_print_arp(struct arphdrs *arp);
 
   /**
-   * Affichage de l'entete IPv4/IPv6.
+   * @fn void bns_header_print_ip(struct iphdr* ipv4)
+   * @brief Affichage de l'entete IPv4/IPv6.
    * @param ipv4[in] Entete IPv4.
    */
   void bns_header_print_ip(struct iphdr* ipv4);
 
   /**
-   * Affichage de l'entete UDP.
+   * @fn void bns_header_print_upd(struct udphdr *udp)
+   * @brief Affichage de l'entete UDP.
    * @param udp[in] Entete UDP.
    */
   void bns_header_print_upd(struct udphdr *udp);
 
   /**
-   * Affichage de l'entete TCP.
+   * @fn void bns_header_print_tcp(struct tcphdr *tcp)
+   * @brief Affichage de l'entete TCP.
    * @param tcp[in] Entet TCP.
    */
   void bns_header_print_tcp(struct tcphdr *tcp);
 
-#endif /* __BNS_PACKET_H__ */
+#endif /* __BNS_HEADER_H__ */

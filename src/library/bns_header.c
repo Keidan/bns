@@ -1,8 +1,8 @@
 /**
  *******************************************************************************
- * @file bns_packet.c
+ * @file bns_header.c
  * @author Keidan
- * @date 03/01/2013
+ * @date 19/05/2013
  * @par Project
  * bns
  *
@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <bns/bns_packet.h>
+#include <bns/bns_header.h>
 #include <bns/bns_utils.h>
 #include <bns/bns_logger.h>
 
@@ -54,8 +54,16 @@ struct ipv6hdr {
     struct  in6_addr   daddr;
 };
 
-
-int decode_network_buffer(const char* buffer, __u32 length, struct bns_network_s *net, bns_packet_convert_et convert) {
+/**
+ * @fn int bns_header_decode_buffer(const char* buffer, __u32 length, struct bns_network_s *net, bns_packet_convert_et convert)
+ * @brief Decodage des paquets en fonction du buffer.
+ * @param buffer[in] Buffer de donnee.
+ * @param length[in] Taille du buffer.
+ * @param net[ou] Liste des entetes.
+ * @param convert[in] Conversion de certains champs des differentes entetes.
+ * @return -1 sur erreur sinon la taill de la payload (peut etre 0).
+ */
+int bns_header_decode_buffer(const char* buffer, __u32 length, struct bns_network_s *net, bns_packet_convert_et convert) {
   __u32 offset = sizeof(struct ethhdr);
   memset(net, 0, sizeof(struct bns_network_s));
   struct ethhdr *eth = (struct ethhdr *)buffer;
@@ -76,7 +84,7 @@ int decode_network_buffer(const char* buffer, __u32 length, struct bns_network_s
     if(ip4->version == 4) {
       net->ipv4 = (struct iphdr *)malloc(sizeof(struct iphdr));
       if(!net->ipv4) {
-	release_network_buffer(net);
+	bns_header_release_buffer(net);
 	logger("Unable to alloc memory for ipv4 header!\n");
 	return -1;
       }
@@ -100,7 +108,7 @@ int decode_network_buffer(const char* buffer, __u32 length, struct bns_network_s
       struct tcphdr *tcp = &utcp->hdr;     
       net->tcp = (struct tcphdr *)malloc(sizeof(struct tcphdr));
       if(!net->tcp) {
-	release_network_buffer(net);
+	bns_header_release_buffer(net);
 	logger("Unable to alloc memory for tcp header!\n");
 	return -1;
       }
@@ -127,7 +135,7 @@ int decode_network_buffer(const char* buffer, __u32 length, struct bns_network_s
       struct udphdr *udp = (struct udphdr*)(buffer + offset);
       net->udp = (struct udphdr *)malloc(sizeof(struct udphdr));
       if(!net->udp) {
-	release_network_buffer(net);
+	bns_header_release_buffer(net);
 	logger("Unable to alloc memory for udp header!\n");
 	return -1;
       }
@@ -153,14 +161,14 @@ int decode_network_buffer(const char* buffer, __u32 length, struct bns_network_s
     struct arphdr *arp = (struct arphdr*)(buffer + offset);
     net->arp = (struct arphdrs *)malloc(sizeof(struct arphdrs));
     if(!net->arp) {
-      release_network_buffer(net);
+      bns_header_release_buffer(net);
       logger("Unable to alloc memory for arp header!\n");
       return -1;
     }
     memset(net->arp, 0, sizeof(struct arphdrs));
     net->arp->arp1 = (struct arphdr *)malloc(sizeof(struct arphdr));
     if(!net->arp->arp1) {
-      release_network_buffer(net);
+      bns_header_release_buffer(net);
       logger("Unable to alloc memory for arp1 header!\n");
       return -1;
     }
@@ -178,7 +186,7 @@ int decode_network_buffer(const char* buffer, __u32 length, struct bns_network_s
       struct arphdr2 *p2 = (struct arphdr2*)(buffer + offset);
       net->arp->arp2 = (struct arphdr2 *)malloc(sizeof(struct arphdr2));   
       if(!net->arp->arp2) {
-	release_network_buffer(net);
+	bns_header_release_buffer(net);
 	logger("Unable to alloc memory for arp2 header!\n");
 	return -1;
       }
@@ -193,8 +201,12 @@ int decode_network_buffer(const char* buffer, __u32 length, struct bns_network_s
   return offset;
 }
 
-
-void release_network_buffer(struct bns_network_s *net) {
+/**
+ * @fn void bns_header_release_buffer(struct bns_network_s *net)
+ * @brief Liberation des ressources allouee par decode_network_buffer.
+ * @param net[in,out] Liste des entetes a liberer.
+ */
+void bns_header_release_buffer(struct bns_network_s *net) {
   if(net->eth) free(net->eth), net->eth = NULL;
   if(net->arp) {
     if(net->arp->arp1) free(net->arp->arp1), net->arp->arp1 = NULL;
@@ -206,8 +218,14 @@ void release_network_buffer(struct bns_network_s *net) {
   if(net->tcp) free(net->tcp), net->tcp = NULL;
 }
 
-
-_Bool match_from_simple_filter(struct bns_network_s *net, struct bns_filter_s filter) {
+/**
+ * @fn _Bool bns_header_match_from_simple_filter(struct bns_network_s *net, struct bns_filter_s filter)
+ * @brief Test si le regle matche ou non.
+ * @param net[in] entetes.
+ * @param filter[in] Filtre a tester.
+ * @return Retourne 1 si match.
+ */
+_Bool bns_header_match_from_simple_filter(struct bns_network_s *net, struct bns_filter_s filter) {
   _Bool ip_found = 0, port_found = 0;
   if(net->eth->h_proto == ETH_P_IP || net->eth->h_proto == ETH_P_IPV6) {
     if(net->ipv4) {
@@ -257,6 +275,13 @@ _Bool match_from_simple_filter(struct bns_network_s *net, struct bns_filter_s fi
   return ip_found && port_found;
 }
 
+/**
+ * @fn void bns_header_print_headers(const char* buffer, __u32 length, struct bns_network_s net)
+ * @brief Affichage des entetes.
+ * @param buffer[in] Buffer de donnee.
+ * @param length[in] Taille du buffer.
+ * @param net[in] Entetes.
+ */
 void bns_header_print_headers(const char* buffer, __u32 length, struct bns_network_s net) {
   /* affichage de l'entete ethernet */
   bns_header_print_eth(net.eth);
@@ -281,7 +306,11 @@ void bns_header_print_headers(const char* buffer, __u32 length, struct bns_netwo
   bns_utils_print_hex(stdout, (char*)buffer, length, 0);
 }
 
-
+/**
+ * @fn void bns_header_print_eth(struct ethhdr *eth)
+ * @brief Affichage de l'entete Ethernet.
+ * @param eth[in] Entete Ethernet.
+ */
 void bns_header_print_eth(struct ethhdr *eth) {
   printf("Ethernet:\n");
   printf("\tSource: %02x:%02x:%02x:%02x:%02x:%02x\n\tDestination: %02x:%02x:%02x:%02x:%02x:%02x\n\tType:0x%04x\n",
@@ -290,7 +319,11 @@ void bns_header_print_eth(struct ethhdr *eth) {
 	 eth->h_proto);
 }
 
-
+/**
+ * @fn void bns_header_print_arp(struct arphdrs *arp)
+ * @brief Affichage de l'entete ARP.
+ * @param arp[in] Entete ARP.
+ */
 void bns_header_print_arp(struct arphdrs *arpp) {
   struct arphdr *arp = arpp->arp1;
   struct arphdr2 *p2 = arpp->arp2;
@@ -317,7 +350,11 @@ void bns_header_print_arp(struct arphdrs *arpp) {
   }
 }
 
-
+/**
+ * @fn void bns_header_print_ip(struct iphdr* ipv4)
+ * @brief Affichage de l'entete IPv4/IPv6.
+ * @param ipv4[in] Entete IPv4.
+ */
 void bns_header_print_ip(struct iphdr* ipv4) {
   if(ipv4->version == 4) {
     /* Affichage de l'entete IPv4 */
@@ -359,7 +396,11 @@ void bns_header_print_ip(struct iphdr* ipv4) {
   }
 }
 
-
+/**
+ * @fn void bns_header_print_upd(struct udphdr *udp)
+ * @brief Affichage de l'entete UDP.
+ * @param udp[in] Entete UDP.
+ */
 void bns_header_print_upd(struct udphdr *udp) {
   /* Affichage de l'entete UDP */
   printf("User Datagram Protocol:\n");
@@ -367,7 +408,11 @@ void bns_header_print_upd(struct udphdr *udp) {
   printf("\tLength: %d\n\tChecksum: 0x%04x\n", udp->len, udp->check);
 }
 
-
+/**
+ * @fn void bns_header_print_tcp(struct tcphdr *tcp)
+ * @brief Affichage de l'entete TCP.
+ * @param tcp[in] Entet TCP.
+ */
 void bns_header_print_tcp(struct tcphdr *tcp) { 
   /* Affichage de l'entete TCP */
   printf("Transmission Control Protocol:\n");
