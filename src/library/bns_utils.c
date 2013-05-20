@@ -31,9 +31,72 @@
 #include <netdb.h>
 #include <linux/if_packet.h>
 #include <unistd.h>
+#include <sys/time.h>
+#include <time.h>
+#include <math.h>
 #include <bns/bns_utils.h>
 #include <bns/bns_logger.h>
 
+/**
+ * @def BNS_PCAP_VERSION_MAJOR
+ * @brief Version major du fichier pcap.
+ * @see netdump_utils_pcap_global_hdr
+ */
+#define BNS_PCAP_VERSION_MAJOR     2
+/**
+ * @def BNS_PCAP_VERSION_MINOR
+ * @brief Version minor du fichier pcap.
+ * @see netdump_utils_pcap_global_hdr
+ */
+#define BNS_PCAP_VERSION_MINOR     4
+/**
+ * @def BNS_PCAP_MAGIC_NATIVE
+ * @brief Magic du fichier pcap.
+ * @see netdump_utils_pcap_global_hdr
+ */
+#define BNS_PCAP_MAGIC_NATIVE      0xa1b2c3d4
+/**
+ * @def BNS_PCAP_LINKTYPE_ETHERNET
+ * @brief Type de capture.
+ * @see netdump_utils_pcap_global_hdr
+ */
+#define BNS_PCAP_LINKTYPE_ETHERNET 1
+/**
+ * @def BNS_PCAP_SNAPLEN
+ * @brief Taille de la capture.
+ * @see netdump_utils_pcap_global_hdr
+ */
+#define BNS_PCAP_SNAPLEN           65535
+
+/**
+ * @def VALUE_1KO
+ * @brief Valeur 1 Ko en octets
+ * @see bns_utils_size_to_string
+ */
+#define VALUE_1KO   0x400
+/**
+ * @def VALUE_1MO
+ * @brief Valeur 1 Mo en octets
+ * @see bns_utils_size_to_string
+ */
+#define VALUE_1MO   0x100000
+/**
+ * @def VALUE_1GO
+ * @brief Valeur 1 Go en octets
+ * @see bns_utils_size_to_string
+ */
+#define VALUE_1GO   0x40000000
+
+
+
+/**
+ * Liste toutes les interfaces et les ajoutent a la liste (IMPORTANT: apres appel de cette methode des sockets sont ouverts).
+ * @param ifaces[in,out] Liste des interfaces (la taille vaut 1 ou 0 si iname n'est pas vide).
+ * @param maxfd[in,out] Utilise pour le select.
+ * @param rset[in,out] fd_set utilise pour le select.
+ * @param iname[in] Demande la configuration d'une interface.
+ * @return -1 en cas d'erreur sinon 0.
+ */
 int bns_utils_prepare_ifaces(struct iface_s *ifaces, int *maxfd, fd_set *rset, const char iname[IF_NAMESIZE]) {
   int i;
   struct ifreq ifr;
@@ -58,12 +121,9 @@ int bns_utils_prepare_ifaces(struct iface_s *ifaces, int *maxfd, fd_set *rset, c
   i = 0; /* init */
   while(1){
     if(!nameindex[i].if_name) break;
-    if(strlen(iname) && strncmp(iname, nameindex[i].if_name, IF_NAMESIZE) != 0) {
-    	i++;
-    	continue;
-    }
     /* Recuperation du nom qui sera utilise plus bas. */
     name = nameindex[i++].if_name;
+    if(iname[0] && strncmp(iname, name, IF_NAMESIZE) != 0) continue;
 
     /* Creation d'un socket qui sera utilise pour l'ecoute + les ios*/
     /* Socket raw */
@@ -121,7 +181,15 @@ int bns_utils_prepare_ifaces(struct iface_s *ifaces, int *maxfd, fd_set *rset, c
   return 0;
 }
 
-
+/**
+ * @fn void bns_utils_add_iface(struct iface_s* list, char name[IF_NAMESIZE], int index, int fd, int family)
+ * @brief Ajout d'un interface a la liste.
+ * @param list[in,out] Liste d'interfaces.
+ * @param name[in] Nom de l'interface.
+ * @param index[in] Index de l'interface.
+ * @param fd[in] FD du socket utilise.
+ * @param family[in] Famille de l'interface.
+ */
 void bns_utils_add_iface(struct iface_s* list, char name[IF_NAMESIZE], int index, int fd, int family) {
   struct iface_s* node;
   node = (struct iface_s*)malloc(sizeof(struct iface_s));
@@ -148,7 +216,13 @@ void bns_utils_clear_ifaces(struct iface_s* ifaces) {
   }
 }
 
-
+/**
+ * @fn _Bool bns_utils_device_is_up(int fd, char name[IF_NAMESIZE])
+ * @brief Effectue un test pour savoir si le device est up
+ * @param fd[in] FD pour l'ioctl.
+ * @param name[in] Nom du device.
+ * @return Vrai si up.
+ */
 _Bool bns_utils_device_is_up(int fd, char name[IF_NAMESIZE]) {
   struct ifreq ifr;
   memset(&ifr, 0, sizeof(ifr));
@@ -164,7 +238,12 @@ _Bool bns_utils_device_is_up(int fd, char name[IF_NAMESIZE]) {
   return !!(ifr.ifr_flags & IFF_UP);
 }
 
-
+/**
+ * @fn __u32 bns_utils_datas_available(int fd)
+ * @brief Recuperation du nombre de donnees a lire.
+ * @param fd[in] fd a tester.
+ * @return Nb donnees a lire. 
+ */
 __u32 bns_utils_datas_available(int fd) {
   __u32 available = 0;
   /* demande le nombre d'octets quipeuvent etre lues */
@@ -176,7 +255,12 @@ __u32 bns_utils_datas_available(int fd) {
   return available;
 }
 
-
+/**
+ * @fn int bns_utils_is_ipv4(const char* ip)
+ * @brief Test si l'adresse ip est valide.
+ * @param ip[in] Adresse IP.
+ * @return -1 si erreur, 0 si non match, 1 si match.
+ */
 int bns_utils_is_ipv4(const char* ip) {    
   struct in_addr i_addr;
   int ret = 0;
@@ -186,6 +270,13 @@ int bns_utils_is_ipv4(const char* ip) {
   return -1;
 }
  
+/**
+ * @fn int bns_utils_hostname_to_ip(const char *hostname, char* ip)
+ * @brief Recuperation de l'adresse ip en fonction du nom de host.
+ * @param hostname[in] Nom du host.
+ * @param name[out] Adresse IP.
+ * @return -1 si erreur sinon 0.
+ */
 int bns_utils_hostname_to_ip(const char *hostname, char* ip) {
   struct hostent *he;
   struct in_addr **addr_list;
@@ -202,6 +293,13 @@ int bns_utils_hostname_to_ip(const char *hostname, char* ip) {
   return -1;
 }
 
+/**
+ * @fn void bns_utils_print_hex(FILE* std, char* buffer, int len, _Bool print_str)
+ * @brief Affichage d'un packet (wireshark like).
+ * @param std[in] Flux de sortie.
+ * @param buffer[in] Packet.
+ * @param len[in] Taille du packet.
+ */
 void bns_utils_print_hex(FILE* std, char* buffer, int len, _Bool print_raw) {
   int i = 0, max = PRINT_HEX_MAX_PER_LINES, loop = len;
   __u8 *p = (__u8 *)buffer;
@@ -241,15 +339,123 @@ void bns_utils_print_hex(FILE* std, char* buffer, int len, _Bool print_raw) {
   fprintf(std, "\n");
 }
 
-
+/**
+ * @fn unsigned int bns_utils_ip_to_long(const char* s)
+ * @brief Transforme une adresse IP en long.
+ * @param s[in] IP a transformer.
+ * @return Long.
+ */
 const char* bns_utils_long_to_ip(unsigned int v)  {
   struct in_addr x;
   x.s_addr = htonl(v);
   return inet_ntoa(x);
 }
 
+/**
+ * @fn unsigned int bns_utils_ip_to_long(const char* s)
+ * @brief Transforme une adresse IP en long.
+ * @param s[in] IP a transformer.
+ * @return Long.
+ */
 unsigned int bns_utils_ip_to_long(const char* s) {
   struct sockaddr_in n;
   inet_aton(s,&n.sin_addr);
   return ntohl(n.sin_addr.s_addr);
+}
+
+/**
+ * @fn void bns_utils_size_to_string(long size, char ssize[BNS_UTILS_MAX_SSIZE])
+ * @brief Convertie une taille en string avec l'unite.
+ * @param size Taille.
+ * @param ssize Output
+ */
+void bns_utils_size_to_string(long size, char ssize[BNS_UTILS_MAX_SSIZE]) {
+  memset(ssize, 0, BNS_UTILS_MAX_SSIZE);
+  float s = size;
+  if(size < VALUE_1KO)
+    snprintf(ssize, BNS_UTILS_MAX_SSIZE, "%ld octet%s", size, size > 1 ? "s" : "");
+  else if(size < VALUE_1MO)
+    snprintf(ssize, BNS_UTILS_MAX_SSIZE, "%ld Ko", (long)ceil(s/VALUE_1KO));
+  else if(size < VALUE_1GO)
+    snprintf(ssize, BNS_UTILS_MAX_SSIZE, "%ld Mo", (long)ceil(s/VALUE_1MO));
+  else
+    snprintf(ssize, BNS_UTILS_MAX_SSIZE, "%ld Go",  (long)ceil(s/VALUE_1GO));
+}
+
+/**
+ * @fn long bns_utils_fsize(FILE* file)
+ * @brief Recupere la taille du fichier.
+ * @param file[in] Taille.
+ * @return Long.
+ */
+long bns_utils_fsize(FILE* file) {
+  long size = 0L, old = 0L;
+  if (file) {
+    old = ftell(file);
+    fseek(file, 0L, SEEK_END);
+    size = ftell(file);
+    fseek(file, old, SEEK_SET);
+  }
+  return size;
+}
+
+/**
+ * @fn pcap_hdr_t bns_utils_pcap_global_hdr(void)
+ * @brief Construction du main header du fichier.
+ * @return pcap_hdr_t
+ */
+pcap_hdr_t bns_utils_pcap_global_hdr(void) {
+  pcap_hdr_t hdr;
+  memset(&hdr, 0, sizeof(pcap_hdr_t));
+  hdr.magic_number = BNS_PCAP_MAGIC_NATIVE;
+  hdr.version_major = BNS_PCAP_VERSION_MAJOR;
+  hdr.version_minor = BNS_PCAP_VERSION_MINOR;  
+  tzset(); /* force le set de la variable timezone */
+  hdr.thiszone = timezone;
+  hdr.sigfigs = 0;
+  hdr.snaplen = BNS_PCAP_SNAPLEN;
+  hdr.network = BNS_PCAP_LINKTYPE_ETHERNET;
+  return hdr;
+}
+
+/**
+ * @fn pcap_hdr_t bns_utils_pcap_packet_hdr(__u32 incl_len, __u32 ori_len)
+ * @brief Construction du header par paquets.
+ * @return pcaprec_hdr_t.
+ */
+pcaprec_hdr_t bns_utils_pcap_packet_hdr(__u32 incl_len, __u32 ori_len) {
+  pcaprec_hdr_t hdr;
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  hdr.ts_sec = tv.tv_sec;
+  hdr.ts_usec = tv.tv_usec;
+  hdr.incl_len = incl_len;
+  hdr.orig_len = ori_len;
+  return hdr;
+}
+
+/**
+ * @fn void bns_utils_write_pcap_packet(const FILE* output, const char* buffer, size_t a_length, size_t r_length, _Bool *first)
+ * @brief Ecriture des headers pcap et du buffer dans le fichier specifie.
+ * Source: http://wiki.wireshark.org/Development/LibpcapFileFormat
+ * Packet structure:
+ * -----------------------------------------------------------------------------------------------------------------
+ * | Global Header | Packet Header | Packet Data | Packet Header | Packet Data | Packet Header | Packet Data | ... |
+ * -----------------------------------------------------------------------------------------------------------------
+ * @param output Fichier de sortie.
+ * @param buffer Buffer d'entree.
+ * @param a_length Taille demandee a l'appel de recvfrom.
+ * @param r_length Taille recuperee apres l'appel de recvfrom.
+ * @param first Cette variable permet l'ecriture du header global, en debut de fichier uniquement.
+ */
+void bns_utils_write_pcap_packet(FILE* output, const char* buffer, size_t a_length, size_t r_length, _Bool *first) {
+  if(*first) {
+    pcap_hdr_t ghdr = bns_utils_pcap_global_hdr();
+    fwrite(&ghdr, 1, sizeof(pcap_hdr_t), output);
+    *first = 0;
+  }
+  pcaprec_hdr_t phdr = bns_utils_pcap_packet_hdr(r_length, a_length);
+  fwrite(&phdr, 1, sizeof(pcaprec_hdr_t), output);
+  fwrite(buffer, 1, r_length, output);
+  fflush(output);
 }
