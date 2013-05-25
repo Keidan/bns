@@ -8,24 +8,25 @@ This software is distributed in the hope that it will be useful, but WITHOUT ANY
 Instructions
 ============
 
-CAUTION: BNS requires the tk library.
+
+`CAUTION: BNS requires the tk library.`
+
 
 download the software :
-  mkdir devel<br>
-  cd devel<br>
 
-  - tk
-  git clone git://github.com/Keidan/tk.git<br>
-  cd tk<br>
-  cmake -DCMAKE_BUILD_TYPE=[x86|x86_64|xscale] -DDISTRIBUTION=[debug|release] .<br>
-  make<br>
-  cd ..
-
-  - bns
-  git clone git://github.com/Keidan/bns.git<br>
-  cd bns<br>
-  cmake -DCMAKE_BUILD_TYPE=[x86|x86_64|xscale] -DDISTRIBUTION=[debug|release] .<br>
-  make<br>
+	mkdir devel
+	cd devel
+	
+	git clone git://github.com/Keidan/tk.git
+	cd tk
+	cmake -DCMAKE_BUILD_TYPE=[x86|x86_64|xscale] -DDISTRIBUTION=[debug|release] .
+	make
+	cd ..
+	
+	git clone git://github.com/Keidan/bns.git
+	cd bns
+	cmake -DCMAKE_BUILD_TYPE=[x86|x86_64|xscale] -DDISTRIBUTION=[debug|release] .
+	make
   
 
 License (like GPL)
