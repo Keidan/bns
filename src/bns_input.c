@@ -27,7 +27,7 @@
 static char input_buffer[BUFFER_LENGTH];
 
 /**
- * @fn int bns_input(FILE* input, struct bns_filter_s filter, _Bool payload_only, _Bool raw)
+ * @fn int bns_input(FILE* input, struct netutils_filter_s filter, _Bool payload_only, _Bool raw)
  * @brief Fonction gerant le mode input.
  * @param input Fichier input.
  * @param filter Filtre.
@@ -36,8 +36,8 @@ static char input_buffer[BUFFER_LENGTH];
  * @return 0 si succes sinon -1.
  */
 
-int bns_input(FILE* input, struct bns_filter_s filter, _Bool payload_only, _Bool raw) {
-  struct bns_network_s net;
+int bns_input(FILE* input, struct netutils_filter_s filter, _Bool payload_only, _Bool raw) {
+  struct netutils_headers_s net;
   __u32 length = 0, current = 0, lines = 0, ilen, i;
   char* buffer = NULL;
   int plen = 0;
@@ -51,7 +51,7 @@ int bns_input(FILE* input, struct bns_filter_s filter, _Bool payload_only, _Bool
     /* Bloc de debut. */
     if(strncmp(input_buffer, "---b", 4) == 0) {
       if(buffer) { /* Si on passe par la c'est qu'il y a un problème avec l'algo/fichier. */
-	logger("FATAL: Buffer already allocated (line:%d)!!!\n", lines);
+	logger(LOG_ERR, "FATAL: Buffer already allocated (line:%d)!!!\n", lines);
 	return EXIT_FAILURE;
       }
       name_matches = 0;
@@ -68,7 +68,7 @@ int bns_input(FILE* input, struct bns_filter_s filter, _Bool payload_only, _Bool
       if(length) {
 	/* Allocation du buffer. */
 	if((buffer = (char*)malloc(length + 1)) == NULL) {
-	  logger("FATAL: Unable to alloc memory (length:%d) (line:%d)\n", length, lines);
+	  logger(LOG_ERR, "FATAL: Unable to alloc memory (length:%d) (line:%d)\n", length, lines);
 	  return EXIT_FAILURE;
 	}
 	/* RAZ du buffer. */
@@ -101,29 +101,29 @@ int bns_input(FILE* input, struct bns_filter_s filter, _Bool payload_only, _Bool
     /* Fin du bloc */
     if(current == length) {
       /* decodage des differentes entetes */
-      if((plen = bns_header_decode_buffer(buffer, length, &net, BNS_PACKET_CONVERT_NET2HOST)) == -1) {
+      if((plen = netutils_decode_buffer(buffer, length, &net, NETUTILS_CONVERT_NET2HOST)) == -1) {
 	free(buffer);
-	logger("FATAL: DECODE FAILED (line:%d)\n", lines);
+	logger(LOG_ERR, "FATAL: DECODE FAILED (line:%d)\n", lines);
 	exit(EXIT_FAILURE); /* pas besoin de continuer... */
       }
       display = 0;
       /* si un regle est appliquee */
       if(filter.ip || filter.port) {
         /* test de cette derniere */
-        if(bns_header_match_from_simple_filter(&net, filter)) display = 1;
+        if(netutils_match_from_simple_filter(&net, filter)) display = 1;
       } else display = 1;
       if(display) {
         if(payload_only) {
 	  if(!raw)
-	    bns_utils_print_hex(stdout, buffer + plen, length - plen, 0);
+	    netutils_print_hex(stdout, buffer + plen, length - plen, 0);
 	  else
 	    for(i = 0; i < (length - plen); i++)
 	      printf("%c", (buffer+plen)[i]);
 	        printf("\n");
         } else
-	  bns_header_print_headers(buffer, length, net);
+	  netprint_print_headers(buffer, length, net);
       }
-      bns_header_release_buffer(&net);
+      netutils_release_buffer(&net);
       /* Liberation du buffer et RAZ des index. */
       length = current = 0;
       free(buffer), buffer = NULL;

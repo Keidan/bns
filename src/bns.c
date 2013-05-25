@@ -48,11 +48,6 @@ static const struct option long_options[] = {
     { NULL     , 0, NULL, 0   } 
 };
 
-#define convert_to_int(str, n_out) ({		\
-    n_out = strtol(str, NULL, 10);		\
-    if((errno == ERANGE) || (errno == EINVAL))	\
-      n_out = 0;				\
-  })
   
 #ifndef _POSIX_HOST_NAME_MAX
   #define _POSIX_HOST_NAME_MAX 255
@@ -113,7 +108,7 @@ int main(int argc, char** argv) {
 	strncpy(fname, optarg, FILENAME_MAX);
 	output = fopen(fname, "w+");
 	if(!output) {
-	  logger("Unable to open file '%s': (%d) %s\n", optarg, errno, strerror(errno));
+	  logger(LOG_ERR, "Unable to open file '%s': (%d) %s\n", optarg, errno, strerror(errno));
 	  usage(EXIT_FAILURE);
 	}
 	break;
@@ -121,19 +116,19 @@ int main(int argc, char** argv) {
 	strncpy(fname, optarg, FILENAME_MAX);
 	input = fopen(fname, "r");
 	if(!input) {
-	  logger("Unable to open file '%s': (%d) %s\n", optarg, errno, strerror(errno));
+	  logger(LOG_ERR, "Unable to open file '%s': (%d) %s\n", optarg, errno, strerror(errno));
 	  usage(EXIT_FAILURE);
 	}
 	break;
       case '3': /* host */
 	strncpy(host, optarg, _POSIX_HOST_NAME_MAX);
-	if(!bns_utils_is_ipv4(host))
-	  bns_utils_hostname_to_ip(host, host);
+	if(!netutils_is_ipv4(host))
+	  netutils_hostname_to_ip(host, host);
         /* passage de l'ip en long*/
-	long_host = bns_utils_ip_to_long(host);
+	long_host = netutils_ip_to_long(host);
 	break;
       case '4': /* port */
-	convert_to_int(optarg, port);
+	port = string_parse_int(optarg, 0);
 	break;
       case '5': /* payload */
 	payload_only = 1;
@@ -142,10 +137,10 @@ int main(int argc, char** argv) {
 	raw = 1;
 	break;
       case '7': /* size */
-	convert_to_int(optarg, size);
+	size = string_parse_int(optarg, 0);
 	break;
       case '8': /* count */
-	convert_to_int(optarg, count);
+	count = string_parse_int(optarg, BNS_OUTPUT_MAX_FILES+1);
         if(count > BNS_OUTPUT_MAX_FILES) {
           fprintf(stderr, "Invalid count value (max:%d)\n", BNS_OUTPUT_MAX_FILES);
           usage(EXIT_FAILURE);
@@ -155,13 +150,13 @@ int main(int argc, char** argv) {
 	pcap = 1;
 	break;
       default: /* '?' */
-	logger("Unknown option '%c'\n", opt);
+	logger(LOG_ERR, "Unknown option '%c'\n", opt);
 	usage(EXIT_FAILURE);
 	break;
     }
   }
 
-  struct bns_filter_s filter = {
+  struct netutils_filter_s filter = {
     .ip = long_host,
     .port = port,
   };
@@ -174,7 +169,7 @@ int main(int argc, char** argv) {
   else if(output) fprintf(stdout, "Ouput ('%s')\n", fname);
   else            fprintf(stdout, "Console\n");
   fprintf(stdout, "Filter: [%s]%s:%d\n",  strlen(iname) ? iname : "*", strlen(host) ? host : "*", port);
-  fprintf(stdout, "PCAP support: %s\n", BNS_HEADER_SET_NSET(pcap));
+  fprintf(stdout, "PCAP support: %s\n", NETPRINT_SET_NSET(pcap));
   if(input)
     return bns_input(input, filter, payload_only, raw);
   int ret = bns_output(output, fname, filter, size, count, pcap, &packets, usage);
@@ -188,12 +183,12 @@ static void bns_sig_int(sig_t s) {
 }
 
 static void bns_cleanup(void) {
-  char ssize[BNS_UTILS_MAX_SSIZE];
+  char ssize[SYSUTILS_MAX_SSIZE];
   /* si les fichiers ne sont pas sur stdxxx */
   if(input) fclose(input), input = NULL;
   if(output) {
     fprintf(stderr, "%d packets captured.\n", packets);
-    bns_utils_size_to_string(bns_utils_fsize(output), ssize);
+    sysutils_size_to_string(sysutils_fsize(output), ssize);
     fprintf(stderr, "File size %s.\n", ssize);
     fclose(output), output = NULL;
   }

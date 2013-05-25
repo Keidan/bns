@@ -4,7 +4,7 @@ project(bns C)
 
 if("${DISTRIBUTION}" MATCHES "debug")
   set(DISTRIBUTION "debug")
-  set(CMAKE_CXX_FLAGS "-Wall -O0 -g -fPIC")
+  set(CMAKE_C_FLAGS "-Wall -O0 -g -fPIC")
   add_definitions(-DDEBUG)
 else()
   set(CMAKE_C_FLAGS "-Wall -Werror -O2")
@@ -14,15 +14,12 @@ message("-- Target mode: ${DISTRIBUTION}")
 
 # update directories
 set(BNS_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
-set(BNS_SRC_BIN_DIR ${CMAKE_SOURCE_DIR}/src/binary)
-set(BNS_SRC_LIB_DIR ${CMAKE_SOURCE_DIR}/src/library)
-set(BNS_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
+set(BNS_SRC_DIR ${CMAKE_SOURCE_DIR}/src)
+set(TK_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/../tk/include)
 set(EXECUTABLE_OUTPUT_PATH ${BNS_BINARY_DIR})
-set(LIBRARY_OUTPUT_PATH ${BNS_BINARY_DIR})
 
 # global config
-include_directories("${BNS_INCLUDE_DIR}")
-link_directories("${LIBRARY_OUTPUT_PATH}")
+include_directories("${TK_INCLUDE_DIR}")
 
 # add custom targets
 add_custom_target(clean-all
@@ -33,8 +30,8 @@ add_custom_target(doxygen
    COMMAND ${CMAKE_COMMAND} -P cmake/doxygen.cmake
 )
 # The version number.
-set (BNS_VERSION_MAJOR 2)
-set (BNS_VERSION_MINOR 6)
+set (BNS_VERSION_MAJOR 3)
+set (BNS_VERSION_MINOR 0)
 
 # To produce x86_64 binaries
 if("${CMAKE_BUILD_TYPE}" MATCHES "x86_64")
@@ -43,10 +40,10 @@ if("${CMAKE_BUILD_TYPE}" MATCHES "x86_64")
 
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m64")
 
-  set(BNS_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin/x86_64)
+  set(BNS_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin/${DISTRIBUTION}/x86_64)
   set(EXECUTABLE_OUTPUT_PATH ${BNS_BINARY_DIR})
-  set(LIBRARY_OUTPUT_PATH ${BNS_BINARY_DIR})
   file(MAKE_DIRECTORY ${BNS_BINARY_DIR})
+  link_directories("${CMAKE_SOURCE_DIR}/../tk/lib/${DISTRIBUTION}/x86_64")
 # To produce x86 binaries
 elseif("${CMAKE_BUILD_TYPE}" MATCHES "x86")
   # the name of the target operating system
@@ -54,10 +51,10 @@ elseif("${CMAKE_BUILD_TYPE}" MATCHES "x86")
  
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
 
-  set(BNS_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin/x86)
+  set(BNS_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin/${DISTRIBUTION}/x86)
   set(EXECUTABLE_OUTPUT_PATH ${BNS_BINARY_DIR})
-  set(LIBRARY_OUTPUT_PATH ${BNS_BINARY_DIR})
   file(MAKE_DIRECTORY ${BNS_BINARY_DIR})
+  link_directories("${CMAKE_SOURCE_DIR}/../tk/lib/${DISTRIBUTION}/x86")
 # To produce xscale binaries
 elseif("${CMAKE_BUILD_TYPE}" MATCHES "xscale")
   set(CMAKE_SYSTEM_NAME Linux)
@@ -78,14 +75,13 @@ elseif("${CMAKE_BUILD_TYPE}" MATCHES "xscale")
 
   add_definitions(-DTARGET_BIGENDIAN)
 
-  set(BNS_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin/xscale)
+  set(BNS_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin/${DISTRIBUTION}/xscale)
   set(EXECUTABLE_OUTPUT_PATH ${BNS_BINARY_DIR})
-  set(LIBRARY_OUTPUT_PATH ${BNS_BINARY_DIR})
   file(MAKE_DIRECTORY ${BNS_BINARY_DIR})
+  link_directories("${CMAKE_SOURCE_DIR}/../tk/lib/${DISTRIBUTION}/xscale")
 
 else()
   message(FATAL_ERROR "Invalid usage please use: cmake -DCMAKE_BUILD_TYPE=[x86|x86_64|xscale]")
 endif()
 
-add_subdirectory(${BNS_SRC_LIB_DIR})
-add_subdirectory(${BNS_SRC_BIN_DIR})
+add_subdirectory(${BNS_SRC_DIR})

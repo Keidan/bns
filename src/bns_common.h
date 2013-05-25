@@ -28,14 +28,17 @@
   #include <unistd.h>
   #include <errno.h>
   #include <string.h>
-  #include <bns/bns.h>
+  #include <tk/sys/log.h>
+  #include <tk/sys/sysutils.h>
+  #include <tk/net/net.h>
+  #include <tk/text/string.h>
 
   #define BNS_OUTPUT_MAX_FILES 999
 
   typedef void(*usage_fct)(int);
 
   /**
-   * @fn int bns_input(FILE* input, struct bns_filter_s filter, _Bool payload_only, _Bool raw)
+   * @fn int bns_input(FILE* input, struct netutils_filter_s filter, _Bool payload_only, _Bool raw)
    * @brief Fonction gerant le mode input.
    * @param input Fichier input.
    * @param filter Filtre.
@@ -43,10 +46,10 @@
    * @param raw Affiche la payload en raw.
    * @return 0 si succes sinon -1.
    */
-  int bns_input(FILE* input, struct bns_filter_s filter, _Bool payload_only, _Bool raw);
+  int bns_input(FILE* input, struct netutils_filter_s filter, _Bool payload_only, _Bool raw);
 
   /**
-   * @fn int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsigned int size, unsigned int count, _Bool pcap, int *packets, usage_fct usage)
+   * @fn int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, unsigned int size, unsigned int count, _Bool pcap, int *packets, usage_fct usage)
    * @brief Fonction gerant le mode output et console.
    * @param output Fichier output ou NULL pour le mode console.
    * @param outputname Nom du fichier.
@@ -58,6 +61,6 @@
    * @param usage Fonction usage.
    * @return 0 si succes sinon -1.
    */
-  int bns_output(FILE* output, char* outputname, struct bns_filter_s filter, unsigned int size, unsigned int count, _Bool pcap, int *packets, usage_fct usage);
+  int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, unsigned int size, unsigned int count, _Bool pcap, int *packets, usage_fct usage);
 
 #endif /* __BNS_COMMON_H__ */

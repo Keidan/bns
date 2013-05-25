@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * @file bns.h
+ * @file bns_config.h
  * @author Keidan
  * @date 03/01/2013
  * @par Project
@@ -20,12 +20,11 @@
  *
  *******************************************************************************
  */
-#ifndef __BNS_H__
-  #define __BNS_H__
+#ifndef __BNS_CONFIG_H__
+  #define __BNS_CONFIG_H__
 
-  #include <bns/bns_logger.h>
-  #include <bns/bns_header.h>
-  #include <bns/bns_utils.h>
+  // the configured options and settings for BNS
+  #define BNS_VERSION_MAJOR 3
+  #define BNS_VERSION_MINOR 0
 
-
-#endif /* __BNS_H__ */
+#endif /* __BNS_CONFIG_H__ */
