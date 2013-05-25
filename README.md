@@ -19,6 +19,7 @@ download the software :
   cd tk<br>
   cmake -DCMAKE_BUILD_TYPE=[x86|x86_64|xscale] -DDISTRIBUTION=[debug|release] .<br>
   make<br>
+  cd ..
 
   - bns
   git clone git://github.com/Keidan/bns.git<br>
