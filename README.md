@@ -16,8 +16,8 @@ download the software :
 	
 	git clone git://github.com/Keidan/bns.git
 	cd bns
-        git submodule init
-        git submodule update
+	git submodule init
+	git submodule update
 	cmake -DCMAKE_BUILD_TYPE=[x86|x86_64|xscale] -DDISTRIBUTION=[debug|release] .
 	make
   
