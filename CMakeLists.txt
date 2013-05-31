@@ -15,8 +15,7 @@ message("-- Target mode: ${DISTRIBUTION}")
 # update directories
 set(BNS_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
 set(BNS_SRC_DIR ${CMAKE_SOURCE_DIR}/src)
-set(TK_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/../tk/include)
-set(EXECUTABLE_OUTPUT_PATH ${BNS_BINARY_DIR})
+set(TK_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/lib/tk/include)
 
 # global config
 include_directories("${TK_INCLUDE_DIR}")
@@ -31,7 +30,7 @@ add_custom_target(doxygen
 )
 # The version number.
 set (BNS_VERSION_MAJOR 3)
-set (BNS_VERSION_MINOR 0)
+set (BNS_VERSION_MINOR 1)
 
 # To produce x86_64 binaries
 if("${CMAKE_BUILD_TYPE}" MATCHES "x86_64")
@@ -39,22 +38,12 @@ if("${CMAKE_BUILD_TYPE}" MATCHES "x86_64")
   set(CMAKE_SYSTEM_NAME Linux)
 
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m64")
-
-  set(BNS_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin/${DISTRIBUTION}/x86_64)
-  set(EXECUTABLE_OUTPUT_PATH ${BNS_BINARY_DIR})
-  file(MAKE_DIRECTORY ${BNS_BINARY_DIR})
-  link_directories("${CMAKE_SOURCE_DIR}/../tk/lib/${DISTRIBUTION}/x86_64")
 # To produce x86 binaries
 elseif("${CMAKE_BUILD_TYPE}" MATCHES "x86")
   # the name of the target operating system
   set(CMAKE_SYSTEM_NAME Linux)
  
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
-
-  set(BNS_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin/${DISTRIBUTION}/x86)
-  set(EXECUTABLE_OUTPUT_PATH ${BNS_BINARY_DIR})
-  file(MAKE_DIRECTORY ${BNS_BINARY_DIR})
-  link_directories("${CMAKE_SOURCE_DIR}/../tk/lib/${DISTRIBUTION}/x86")
 # To produce xscale binaries
 elseif("${CMAKE_BUILD_TYPE}" MATCHES "xscale")
   set(CMAKE_SYSTEM_NAME Linux)
@@ -74,14 +63,18 @@ elseif("${CMAKE_BUILD_TYPE}" MATCHES "xscale")
   set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
   add_definitions(-DTARGET_BIGENDIAN)
-
-  set(BNS_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin/${DISTRIBUTION}/xscale)
-  set(EXECUTABLE_OUTPUT_PATH ${BNS_BINARY_DIR})
-  file(MAKE_DIRECTORY ${BNS_BINARY_DIR})
-  link_directories("${CMAKE_SOURCE_DIR}/../tk/lib/${DISTRIBUTION}/xscale")
-
 else()
   message(FATAL_ERROR "Invalid usage please use: cmake -DCMAKE_BUILD_TYPE=[x86|x86_64|xscale]")
 endif()
 
+
+file(MAKE_DIRECTORY ${BNS_BINARY_DIR})
+set(EXECUTABLE_OUTPUT_PATH ${BNS_BINARY_DIR})
+set(BNS_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin/${DISTRIBUTION}/${CMAKE_BUILD_TYPE})
+link_directories("${CMAKE_SOURCE_DIR}/lib/tk/lib/${DISTRIBUTION}/${CMAKE_BUILD_TYPE}")
+
 add_subdirectory(${BNS_SRC_DIR})
+
+# add TK env
+include(cmake/tk.cmake)
+
