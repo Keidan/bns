@@ -24,6 +24,13 @@
 
 #define SIZE_1MB 1048576
 
+
+static void bns_output_err_clean(struct netutils_headers_s *net, struct iface_s *ifaces, char* buffer) {
+  if(net) netutils_release_buffer(net);
+  if(ifaces) netutils_clear_ifaces(ifaces);
+  if(buffer) free(buffer);
+}
+
 /**
  * @fn int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, unsigned int size, unsigned int count, _Bool pcap, int *packets, usage_fct usage)
  * @brief Fonction gerant le mode output et console.
@@ -31,12 +38,11 @@
  * @param filter Filtre.
  * @param size Taille du fichier en Mb.
  * @param count Nombre max de fichiers.
- * @param pcap Use pcap format.
  * @param packets Nombre de paquets.
  * @param usage Fonction usage.
  * @return 0 si succes sinon -1.
  */
-int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, unsigned int size, unsigned int count, _Bool pcap, int *packets, usage_fct usage) {
+int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, unsigned int size, unsigned int count, int *packets, usage_fct usage) {
   struct iface_s ifaces;
   struct iface_s* iter;
   char* buffer;
@@ -54,7 +60,7 @@ int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, 
 
   /* Preparation de la liste d'interfaces disponibles. */
   if(netutils_prepare_ifaces(&ifaces, &maxfd, &rset, filter.iface) != 0) {
-    netutils_clear_ifaces(&ifaces); /* force le clear pour fermer les sockets deja ouverts */
+    bns_output_err_clean(NULL, &ifaces, NULL);/* force le clear pour fermer les sockets deja ouverts */
     return EXIT_FAILURE;
   }
     
@@ -78,6 +84,7 @@ int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, 
 	if(!buffer) {
 	  /* un failed ici est critique donc exit */
 	  netutils_clear_ifaces(&ifaces);
+	  bns_output_err_clean(NULL, &ifaces, NULL);
 	  logger(LOG_ERR, "%s: Malloc failed!\n", iter->name);
 	  return EXIT_FAILURE;
 	}
@@ -86,14 +93,14 @@ int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, 
 	/* Si la lecture a echouee on passe au suivant */
 	if (ret < 0) {
 	  free(buffer);
+	  bns_output_err_clean(NULL, NULL, buffer);
 	  logger(LOG_ERR, "%s: recvfrom failed: (%d) %s.\n", iter->name, errno, strerror(errno));
 	  continue;
 	}
 
 	/* decodage des differentes entetes */
 	if(netutils_decode_buffer(buffer, ret, &net, NETUTILS_CONVERT_NET2HOST) == -1) {
-	  free(buffer);
-	  netutils_clear_ifaces(&ifaces);
+	  bns_output_err_clean(NULL, &ifaces, buffer);
 	  logger(LOG_ERR, "FATAL: DECODE FAILED\n");
 	  exit(EXIT_FAILURE); /* pas besoin de continuer... */
 	}
@@ -101,8 +108,7 @@ int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, 
 	if(filter.ip || filter.port)
 	  /* test de cette derniere */
           if(!netutils_match_from_simple_filter(&net, filter)) {
-	    netutils_release_buffer(&net);
-	    free(buffer);
+	    bns_output_err_clean(&net, NULL, buffer);
 	    continue;
 	  } 
 	/* output case */
@@ -112,9 +118,7 @@ int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, 
 	    /* current depasse count on leave */
 	    if(count && (count == current || current > BNS_OUTPUT_MAX_FILES)) {
 	      fprintf(stderr, "Max files (%d/%d) reached.", current, count);
-	      netutils_release_buffer(&net);
-	      netutils_clear_ifaces(&ifaces);
-	      free(buffer);
+	      bns_output_err_clean(&net, &ifaces, buffer);
 	      exit(0);
 	    } 
 	    /* recuperation de la taille du fichier */
@@ -128,9 +132,7 @@ int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, 
 	      char* tmp = malloc(strlen(outputname) + 5); /* name '.' 3 digits + '\0' */
 	      if(!tmp) {
 		logger(LOG_ERR, "Unable to alloc memory for file name '%s.%d'.", outputname, current);
-		netutils_release_buffer(&net);
-		netutils_clear_ifaces(&ifaces);
-		free(buffer);
+		bns_output_err_clean(&net, &ifaces, buffer);
 		return EXIT_FAILURE;
 	      }
 	      /* set du nom */
@@ -140,9 +142,7 @@ int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, 
 		free(tmp);
 		free(outputname);
 		logger(LOG_ERR, "Error renaming file: (%d) %s", errno, strerror(errno));
-		netutils_release_buffer(&net);
-		netutils_clear_ifaces(&ifaces);
-		free(buffer);
+		bns_output_err_clean(&net, &ifaces, buffer);
 		return EXIT_FAILURE;
 	      }
 	      free(tmp);
@@ -151,37 +151,28 @@ int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, 
 	      if(!output) {
 		free(outputname);
 		logger(LOG_ERR, "Unable to open file '%s': (%d) %s\n", optarg, errno, strerror(errno));
-		netutils_release_buffer(&net);
-		netutils_clear_ifaces(&ifaces);
-		free(buffer);
+		bns_output_err_clean(&net, &ifaces, buffer);
 		return EXIT_FAILURE;
 	      }
 	      first = 0;
 	    }
 	  }
-	  if(!pcap) {
-	    /* Ecriture du buffer */
-	    fprintf(output, "---b%d,%s\n", ret, iter->name);
-	    netutils_print_hex(output, buffer, ret, 1);
-	    fflush(output);
-	  } else
-	    netutils_write_pcap_packet(output, buffer, len, ret, &first);
+	  netutils_write_pcap_packet(output, buffer, len, ret, &first);
 	} else {
 	  /* partie decodage + display */
 	  printf("iFace name: %s (%d bytes)\n", iter->name, ret);
 
 	  /* affichage des headers */
 	  netprint_print_headers(buffer, ret, net);
-
-	  /* plus besoin du buffer */
-	  free(buffer);
 	}
+	/* plus besoin du buffer */
+	free(buffer);
 	(*packets)++;
 	/* liberation des entetes */
 	netutils_release_buffer(&net);
-      }
-    }
-  }
+      } /* foreach */
+    } /* select */
+  } /* while */
 
   /* liberation des resources ; bien que dans ce cas unreachable */
   netutils_clear_ifaces(&ifaces);
