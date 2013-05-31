@@ -9,22 +9,15 @@ Instructions
 ============
 
 
-`CAUTION: BNS requires the tk library.`
-
-
 download the software :
 
 	mkdir devel
 	cd devel
 	
-	git clone git://github.com/Keidan/tk.git
-	cd tk
-	cmake -DCMAKE_BUILD_TYPE=[x86|x86_64|xscale] -DDISTRIBUTION=[debug|release] .
-	make
-	cd ..
-	
 	git clone git://github.com/Keidan/bns.git
 	cd bns
+        git submodule init
+        git submodule update
 	cmake -DCMAKE_BUILD_TYPE=[x86|x86_64|xscale] -DDISTRIBUTION=[debug|release] .
 	make
   
