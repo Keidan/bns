@@ -50,7 +50,7 @@ int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, 
   fd_set rset;
   struct netutils_headers_s net;
   unsigned int current = 0;
-  _Bool first = 0;
+  _Bool first = 1;
   
   if(getuid()) usage(EXIT_FAILURE);
 
@@ -105,12 +105,10 @@ int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, 
 	  exit(EXIT_FAILURE); /* pas besoin de continuer... */
 	}
         /* si un regle est appliquee */
-	if(filter.ip || filter.port)
-	  /* test de cette derniere */
-          if(!netutils_match_from_simple_filter(&net, filter)) {
-	    bns_output_err_clean(&net, NULL, buffer);
-	    continue;
-	  } 
+	if(!netutils_match_from_simple_filter(&net, filter)) {
+	  bns_output_err_clean(&net, NULL, buffer);
+	  continue;
+	} 
 	/* output case */
 	if(output) {
 	  /* test de la taille */
@@ -157,6 +155,7 @@ int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, 
 	      first = 0;
 	    }
 	  }
+	  /* partie decodage + display */
 	  netutils_write_pcap_packet(output, buffer, len, ret, &first);
 	} else {
 	  /* partie decodage + display */
