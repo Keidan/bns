@@ -28,6 +28,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <tk/text/string.h>
+#include <tk/text/stringtoken.h>
 
 static FILE* output = NULL;
 static FILE* input = NULL;
@@ -38,12 +40,11 @@ static const struct option long_options[] = {
     { "iface"  , 1, NULL, '0' },
     { "output" , 1, NULL, '1' },
     { "input"  , 1, NULL, '2' },
-    { "host"   , 1, NULL, '3' },
-    { "port"   , 1, NULL, '4' },
-    { "payload", 0, NULL, '5' },
-    { "raw"    , 0, NULL, '6' },
-    { "size"   , 1, NULL, '7' },
-    { "count"  , 1, NULL, '8' },
+    { "filter" , 1, NULL, '3' },
+    { "payload", 0, NULL, '4' },
+    { "raw"    , 0, NULL, '5' },
+    { "size"   , 1, NULL, '6' },
+    { "count"  , 1, NULL, '7' },
     { NULL     , 0, NULL, 0   } 
 };
 
@@ -51,6 +52,11 @@ static const struct option long_options[] = {
 #ifndef _POSIX_HOST_NAME_MAX
   #define _POSIX_HOST_NAME_MAX 255
 #endif
+
+#define blogger(...) ({				\
+    logger(LOG_ERR, __VA_ARGS__);		\
+    fprintf(stderr, __VA_ARGS__);		\
+  })
 
 static void bns_sig_int(sig_t s);
 static void bns_cleanup(void);
@@ -66,8 +72,15 @@ void usage(int err) {
   fprintf(stdout, "\t--iface: Interface name.\n");
   fprintf(stdout, "\t--output: Output file name.\n");
   fprintf(stdout, "\t--input: Input file name [if set all options are useless, except --payload, --raw, --port, --host].\n");
-  fprintf(stdout, "\t--port: port filter.\n");
-  fprintf(stdout, "\t--host: host address filter.\n");
+  fprintf(stdout, "\t--filter: {mac,host,port} filter.\n");
+  fprintf(stdout, "\t\tavilable entries (in order): mac, host, port.\n");
+  fprintf(stdout, "\t\teg:\n");
+  fprintf(stdout, "\t\t {mac_value,host_value,por_value} <- For all entries.\n");
+  fprintf(stdout, "\t\t {mac_value,,} <- MAC only.\n");
+  fprintf(stdout, "\t\t {,host_value,} <- Host only.\n");
+  fprintf(stdout, "\t\t {,,por_value} <- Port only.\n");
+  fprintf(stdout, "\t\t {mac_value,,por_value} <- MAC and port.\n");
+  fprintf(stdout, "\t\t etc...\n");
   fprintf(stdout, "\t--payload: Extract the payload only in stdout (only available with --input).\n");
   fprintf(stdout, "\t--raw: Print the payload in raw (only available with --input).\n");
   fprintf(stdout, "\t--size: Maximum size in Mb of the output file (only available with --output).\n");
@@ -77,23 +90,26 @@ void usage(int err) {
 
 
 int main(int argc, char** argv) {
-  char iname[IF_NAMESIZE], host[_POSIX_HOST_NAME_MAX];
+  char iname[IF_NAMESIZE], host[_POSIX_HOST_NAME_MAX], *tmp, *tmptok;
   __u16 port = 0;
   _Bool payload_only = 0, raw = 0;
   __u32 long_host = 0, size = 0, count = 0;
+  __u32 idx;
   char fname[FILENAME_MAX];
+  smac_t mac;
+  stringtoken_t tok;
 
   bzero(fname, FILENAME_MAX);
+  bzero(mac, NETUTILS_SMAC_LEN);
   bzero(iname, IF_NAMESIZE);
   bzero(host, _POSIX_HOST_NAME_MAX);
-  
-  fprintf(stdout, "Basic network sniffer is a FREE software v%d.%d.\nCopyright 2011-2013 By kei\nLicense GPL.\n", BNS_VERSION_MAJOR, BNS_VERSION_MINOR);
+  fprintf(stdout, "Basic network sniffer is a FREE software v%d.%d.\nCopyright 2011-2013 By kei\nLicense GPL.\n\n", BNS_VERSION_MAJOR, BNS_VERSION_MINOR);
   /* pour fermer proprement sur le kill */
   atexit(bns_cleanup);
   signal(SIGINT, (__sighandler_t)bns_sig_int);
 
   int opt;
-  while ((opt = getopt_long(argc, argv, "h0:1:2:3:4:56:7:8:", long_options, NULL)) != -1) {
+  while ((opt = getopt_long(argc, argv, "h0:1:2:3:456:7:", long_options, NULL)) != -1) {
     switch (opt) {
       case 'h': usage(0); break;
       case '0': /* iface */
@@ -105,7 +121,7 @@ int main(int argc, char** argv) {
 	strncpy(fname, optarg, FILENAME_MAX);
 	output = fopen(fname, "w+");
 	if(!output) {
-	  logger(LOG_ERR, "Unable to open file '%s': (%d) %s\n", optarg, errno, strerror(errno));
+	  blogger("Unable to open file '%s': (%d) %s\n", optarg, errno, strerror(errno));
 	  usage(EXIT_FAILURE);
 	}
 	break;
@@ -113,56 +129,83 @@ int main(int argc, char** argv) {
 	strncpy(fname, optarg, FILENAME_MAX);
 	input = fopen(fname, "r");
 	if(!input) {
-	  logger(LOG_ERR, "Unable to open file '%s': (%d) %s\n", optarg, errno, strerror(errno));
+	  blogger("Unable to open file '%s': (%d) %s\n", optarg, errno, strerror(errno));
 	  usage(EXIT_FAILURE);
 	}
 	break;
-      case '3': /* host */
-	strncpy(host, optarg, _POSIX_HOST_NAME_MAX);
-	if(!netutils_is_ipv4(host))
-	  netutils_hostname_to_ip(host, host);
-        /* passage de l'ip en long*/
-	long_host = netutils_ip_to_long(host);
+      case '3': /* filter */
+	tmp = optarg;
+	idx = string_indexof(tmp, "{");
+	if(idx == -1) {
+	  blogger("Invalid filter format: '{' requires \n");
+	  usage(EXIT_FAILURE);
+	}
+	if(string_count(tmp, ',') != 2) {
+	  blogger("Invalid filter format: ','x2 requires \n");
+	  usage(EXIT_FAILURE);
+	}
+	if(string_count(tmp, '}') != 1) {
+	  blogger("Invalid filter format: '}'x1 requires \n");
+	  usage(EXIT_FAILURE);
+	}
+	tmp[strlen(tmp)-1] = 0;
+	
+	tok = stringtoken_init(tmp+1, ",");
+	tmptok = stringtoken_next_token(tok);
+	if(tmptok) strcpy(mac, tmptok);
+	tmptok = stringtoken_next_token(tok);
+	if(tmptok) strcpy(host, tmptok);
+	tmptok = stringtoken_next_token(tok);
+	if(tmptok) port = string_parse_int(tmptok, 0);
+	stringtoken_release(tok);
+	/* test */
+	if(strlen(host)) {
+	  if(!netutils_is_ipv4(host))
+	    netutils_hostname_to_ip(host, host);
+	  /* passage de l'ip en long*/
+	  long_host = netutils_ip_to_long(host);
+	}
 	break;
-      case '4': /* port */
-	port = string_parse_int(optarg, 0);
-	break;
-      case '5': /* payload */
+      case '4': /* payload */
 	payload_only = 1;
 	break;
-      case '6': /* raw */
+      case '5': /* raw */
 	raw = 1;
 	break;
-      case '7': /* size */
+      case '6': /* size */
 	size = string_parse_int(optarg, 0);
 	break;
-      case '8': /* count */
+      case '7': /* count */
 	count = string_parse_int(optarg, BNS_OUTPUT_MAX_FILES+1);
         if(count > BNS_OUTPUT_MAX_FILES) {
-          fprintf(stderr, "Invalid count value (max:%d)\n", BNS_OUTPUT_MAX_FILES);
+          blogger("Invalid count value (max:%d)\n", BNS_OUTPUT_MAX_FILES);
           usage(EXIT_FAILURE);
         }
 	break;
       default: /* '?' */
-	logger(LOG_ERR, "Unknown option '%c'\n", opt);
+	blogger("Unknown option '%c'\n", opt);
 	usage(EXIT_FAILURE);
 	break;
     }
   }
-
+  _Bool r = netutils_valid_mac(mac);
+  fprintf(stderr, "MAC valid: %d - %s - %s - %d\n", r, mac, host, port);
+  exit(0);
   struct netutils_filter_s filter = {
     .ip = long_host,
     .port = port,
   };
   bzero(filter.iface, IF_NAMESIZE);
-  if(strlen(iname))
-    strcpy(filter.iface, iname);
+  bzero(filter.mac, NETUTILS_SMAC_LEN);
+  if(strlen(iname)) strcpy(filter.iface, iname);
+  if(strlen(mac)) strcpy(filter.mac, mac);
 
   fprintf(stdout, "Mode: ");
   if(input)       fprintf(stdout, "Input ('%s')\n", fname);
   else if(output) fprintf(stdout, "Ouput ('%s')\n", fname);
   else            fprintf(stdout, "Console\n");
-  fprintf(stdout, "Filter: [%s]%s:%d\n",  strlen(iname) ? iname : "*", strlen(host) ? host : "*", port);
+
+  fprintf(stdout, "Filter: [%s]{%s,%s,%d}\n",  strlen(iname) ? iname : "*", netutils_valid_mac(mac) ? mac : "*", strlen(host) ? host : "*", port);
   fprintf(stdout, "PCAP support: %s\n", NETPRINT_SET_NSET(1));
   if(input)
     return bns_input(input, filter, payload_only, raw);
