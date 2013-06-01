@@ -188,9 +188,7 @@ int main(int argc, char** argv) {
 	break;
     }
   }
-  _Bool r = netutils_valid_mac(mac);
-  fprintf(stderr, "MAC valid: %d - %s - %s - %d\n", r, mac, host, port);
-  exit(0);
+
   struct netutils_filter_s filter = {
     .ip = long_host,
     .port = port,
