@@ -82,7 +82,7 @@ void usage(int err) {
   fprintf(stdout, "\t\t {mac_value,,por_value} <- MAC and port.\n");
   fprintf(stdout, "\t\t etc...\n");
   fprintf(stdout, "\t--payload: Extract the payload only in stdout (only available with --input).\n");
-  fprintf(stdout, "\t--raw: Print the payload in raw (only available with --input).\n");
+  fprintf(stdout, "\t--raw: Print the payload in raw (only available with --input and --payload).\n");
   fprintf(stdout, "\t--size: Maximum size in Mb of the output file (only available with --output).\n");
   fprintf(stdout, "\t--count: Maximum number of files - max value %d (only available with --output).\n", BNS_OUTPUT_MAX_FILES);
   exit(err);
@@ -127,7 +127,7 @@ int main(int argc, char** argv) {
 	break;
       case '2': /* input */
 	strncpy(fname, optarg, FILENAME_MAX);
-	input = fopen(fname, "r");
+	input = fopen(fname, "rb");
 	if(!input) {
 	  blogger("Unable to open file '%s': (%d) %s\n", optarg, errno, strerror(errno));
 	  usage(EXIT_FAILURE);
@@ -151,10 +151,13 @@ int main(int argc, char** argv) {
 	tmp[strlen(tmp)-1] = 0;
 	
 	tok = stringtoken_init(tmp+1, ",");
+	/* mac */
 	tmptok = stringtoken_next_token(tok);
 	if(tmptok) strcpy(mac, tmptok);
+	/* host */
 	tmptok = stringtoken_next_token(tok);
 	if(tmptok) strcpy(host, tmptok);
+	/* port */
 	tmptok = stringtoken_next_token(tok);
 	if(tmptok) port = string_parse_int(tmptok, 0);
 	stringtoken_release(tok);
@@ -205,6 +208,7 @@ int main(int argc, char** argv) {
 
   fprintf(stdout, "Filter: [%s]{%s,%s,%d}\n",  strlen(iname) ? iname : "*", netutils_valid_mac(mac) ? mac : "*", strlen(host) ? host : "*", port);
   fprintf(stdout, "PCAP support: %s\n", NETPRINT_SET_NSET(1));
+  fprintf(stdout, "\n");
   if(input)
     return bns_input(input, filter, payload_only, raw);
   int ret = bns_output(output, fname, filter, size, count, &packets, usage);

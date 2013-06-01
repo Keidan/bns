@@ -22,9 +22,6 @@
  */
 #include "bns_common.h"
 
-#define BUFFER_LENGTH ((PRINT_HEX_MAX_PER_LINES * 2) + 3)
-
-static char input_buffer[BUFFER_LENGTH];
 
 /**
  * @fn int bns_input(FILE* input, struct netutils_filter_s filter, _Bool payload_only, _Bool raw)
@@ -35,101 +32,72 @@ static char input_buffer[BUFFER_LENGTH];
  * @param raw Affiche la payload en raw.
  * @return 0 si succes sinon -1.
  */
-
 int bns_input(FILE* input, struct netutils_filter_s filter, _Bool payload_only, _Bool raw) {
   struct netutils_headers_s net;
-  __u32 length = 0, current = 0, lines = 0, ilen, i;
   char* buffer = NULL;
   int plen = 0;
-  _Bool display = 0, name_matches = 0;
-  bzero(input_buffer, BUFFER_LENGTH);
-  char iname[IF_NAMESIZE];
+  __u32 i, reads, offset;
+  _Bool b_ghdr = 0, b_phdr = 0;
+  pcap_hdr_t ghdr;
+  pcaprec_hdr_t phdr;
 
   /* Parse toutes les lignes du fichier */
-  while(fgets(input_buffer, BUFFER_LENGTH, input) != NULL){
-    lines++;
-    /* Bloc de debut. */
-    if(strncmp(input_buffer, "---b", 4) == 0) {
-      if(buffer) { /* Si on passe par la c'est qu'il y a un problème avec l'algo/fichier. */
-	logger(LOG_ERR, "FATAL: Buffer already allocated (line:%d)!!!\n", lines);
+  while(!feof(input)){
+    if(!b_ghdr) {
+      fread(&ghdr, 1, sizeof(pcap_hdr_t), input);
+      printf("Magic: %s\n", netutils_pcap_magic_str(ghdr.magic_number));
+      printf("Version: %d.%d\n", ghdr.version_major, ghdr.version_minor);
+      printf("GMT correction: %d\n", ghdr.thiszone);
+      printf("Accuracy timestamps: %d\n", ghdr.sigfigs);
+      printf("Length: %d\n", ghdr.snaplen);
+      printf("Link: %d\n", ghdr.network);
+      printf("\n");
+      b_ghdr = 1;
+    } 
+    if(!b_phdr) {
+      fread(&phdr, 1, sizeof(pcaprec_hdr_t), input);
+      b_phdr = 1;
+    } else {   
+      b_phdr = 0;
+      printf("Timestamp seconds: %d\n", phdr.ts_sec);
+      printf("Timestamps microseconds: %d\n", phdr.ts_usec);
+      printf("Include length: %d\n", phdr.incl_len);
+      printf("Origin length: %d\n", phdr.orig_len);
+      printf("----\n");
+      /* Allocation du buffer. */
+      if((buffer = (char*)malloc(phdr.incl_len)) == NULL) {
+	logger(LOG_ERR, "FATAL: Unable to alloc memory (length:%d)\n", phdr.incl_len);
 	return EXIT_FAILURE;
       }
-      name_matches = 0;
-      /* Exctraction de la taille. */
-      sscanf(input_buffer+4, "%d,%s\n", &length, iname);
-      if(strlen(filter.iface) && strcmp(filter.iface, iname) != 0) {
-        length = 0;
-        continue;
+      /* RAZ du buffer. */
+      bzero(buffer, phdr.incl_len);
+      offset = 0;
+      while(offset < phdr.incl_len) {
+	reads = fread(buffer + offset, 1, phdr.incl_len - offset, input);
+	offset += reads;
       }
-      name_matches = 1;
-      fprintf(stderr, "%s -> Parse block length: %d\n", iname, length);
-      /* RAZ de l'input. */
-      bzero(input_buffer, BUFFER_LENGTH);
-      if(length) {
-	/* Allocation du buffer. */
-	if((buffer = (char*)malloc(length + 1)) == NULL) {
-	  logger(LOG_ERR, "FATAL: Unable to alloc memory (length:%d) (line:%d)\n", length, lines);
-	  return EXIT_FAILURE;
-	}
-	/* RAZ du buffer. */
-	bzero(buffer, length);
-      }
-      continue;
-    }
-    if(!name_matches) continue;
-    /* Si la taille vaut 0 il y a un pb. */
-    if(!length) {
-      if(strcmp(input_buffer, "\n") != 0)
-        fprintf(stderr, "Invalid paquet length (line:%d): '%s'\n", lines, input_buffer);
-      bzero(input_buffer, BUFFER_LENGTH);
-      continue;
-    }
-    if(current != length) {
-      /* Ajustement de la taille de l'input */
-      ilen = strlen(input_buffer);
-      if(input_buffer[0] == '\n') continue;
-      else if(input_buffer[ilen - 1] == '\n') {
-	input_buffer[ilen - 1] = '\0';
-	ilen = strlen(input_buffer);
-      }
-      /* Restoration du buffer */
-      for(i = 0; i < ilen; i+=2) {
-	char temp[2] = { input_buffer[i], input_buffer[i+1]};
-	buffer[current++] = (char)strtol(temp, NULL, 16);
-      }
-    }
-    /* Fin du bloc */
-    if(current == length) {
       /* decodage des differentes entetes */
-      if((plen = netutils_decode_buffer(buffer, length, &net, NETUTILS_CONVERT_NET2HOST)) == -1) {
-	free(buffer);
-	logger(LOG_ERR, "FATAL: DECODE FAILED (line:%d)\n", lines);
-	exit(EXIT_FAILURE); /* pas besoin de continuer... */
+      if((plen = netutils_decode_buffer(buffer, offset, &net, NETUTILS_CONVERT_NET2HOST)) == -1) {
+    	free(buffer);
+    	logger(LOG_ERR, "FATAL: DECODE FAILED\n");
+    	exit(EXIT_FAILURE); /* pas besoin de continuer... */
       }
-      display = 0;
-      /* si un regle est appliquee */
-      if(filter.ip || filter.port) {
-        /* test de cette derniere */
-        if(netutils_match_from_simple_filter(&net, filter)) display = 1;
-      } else display = 1;
-      if(display) {
+
+      if(netutils_match_from_simple_filter(&net, filter)) {
         if(payload_only) {
-	  if(!raw)
-	    netutils_print_hex(stdout, buffer + plen, length - plen, 0);
-	  else
-	    for(i = 0; i < (length - plen); i++)
-	      printf("%c", (buffer+plen)[i]);
-	        printf("\n");
+    	  if(!raw)
+    	    netutils_print_hex(stdout, buffer + plen, offset - plen, 0);
+    	  else
+    	    for(i = 0; i < (offset - plen); i++)
+    	      printf("%c", (buffer+plen)[i]);
+    	        printf("\n");
         } else
-	  netprint_print_headers(buffer, length, net);
+    	  netprint_print_headers(buffer, offset, net);
       }
       netutils_release_buffer(&net);
-      /* Liberation du buffer et RAZ des index. */
-      length = current = 0;
+      /* Liberation du buffer. */
       free(buffer), buffer = NULL;
     }
-    /* RAZ du buffer. */
-    bzero(input_buffer, BUFFER_LENGTH);
   }
   return EXIT_SUCCESS;
 }
