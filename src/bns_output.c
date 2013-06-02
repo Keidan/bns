@@ -39,10 +39,11 @@ static void bns_output_err_clean(struct netutils_headers_s *net, struct iface_s 
  * @param size Taille du fichier en Mb.
  * @param count Nombre max de fichiers.
  * @param packets Nombre de paquets.
+ * @param link Type du lien.
  * @param usage Fonction usage.
  * @return 0 si succes sinon -1.
  */
-int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, unsigned int size, unsigned int count, int *packets, usage_fct usage) {
+int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, unsigned int size, unsigned int count, int *packets, __u32 link, usage_fct usage) {
   struct iface_s ifaces;
   struct iface_s* iter;
   char* buffer;
@@ -156,7 +157,7 @@ int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, 
 	    }
 	  }
 	  /* partie decodage + display */
-	  netutils_write_pcap_packet(output, buffer, len, ret, &first);
+	  netutils_write_pcap_packet(output, link, buffer, len, ret, &first);
 	} else {
 	  /* partie decodage + display */
 	  printf("iFace name: %s (%d bytes)\n", iter->name, ret);

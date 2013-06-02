@@ -45,6 +45,7 @@ static const struct option long_options[] = {
     { "raw"    , 0, NULL, '5' },
     { "size"   , 1, NULL, '6' },
     { "count"  , 1, NULL, '7' },
+    { "link"   , 1, NULL, '8' },
     { NULL     , 0, NULL, 0   } 
 };
 
@@ -85,6 +86,9 @@ void usage(int err) {
   fprintf(stdout, "\t--raw: Print the payload in raw (only available with --input and --payload).\n");
   fprintf(stdout, "\t--size: Maximum size in Mb of the output file (only available with --output).\n");
   fprintf(stdout, "\t--count: Maximum number of files - max value %d (only available with --output).\n", BNS_OUTPUT_MAX_FILES);
+  fprintf(stdout, "\t--link: Force the default link type (only available with --output).\n");
+  fprintf(stdout, "\t\tThe default link type correspond to value %d (ethernet)\n", NETUTILS_PCAP_LINKTYPE_ETHERNET);
+  fprintf(stdout, "\t\tSee the following link for more types: http://www.tcpdump.org/linktypes.html\n");
   exit(err);
 }
 
@@ -95,6 +99,7 @@ int main(int argc, char** argv) {
   _Bool payload_only = 0, raw = 0;
   __u32 long_host = 0, size = 0, count = 0;
   __u32 idx;
+  __u32 link = NETUTILS_PCAP_LINKTYPE_ETHERNET;
   char fname[FILENAME_MAX];
   smac_t mac;
   stringtoken_t tok;
@@ -109,7 +114,7 @@ int main(int argc, char** argv) {
   signal(SIGINT, (__sighandler_t)bns_sig_int);
 
   int opt;
-  while ((opt = getopt_long(argc, argv, "h0:1:2:3:456:7:", long_options, NULL)) != -1) {
+  while ((opt = getopt_long(argc, argv, "h0:1:2:3:456:7:8:", long_options, NULL)) != -1) {
     switch (opt) {
       case 'h': usage(0); break;
       case '0': /* iface */
@@ -185,6 +190,9 @@ int main(int argc, char** argv) {
           usage(EXIT_FAILURE);
         }
 	break;
+      case '8': /* link */
+	link = string_parse_int(optarg, NETUTILS_PCAP_LINKTYPE_ETHERNET);
+	break;
       default: /* '?' */
 	blogger("Unknown option '%c'\n", opt);
 	usage(EXIT_FAILURE);
@@ -211,7 +219,7 @@ int main(int argc, char** argv) {
   fprintf(stdout, "\n");
   if(input)
     return bns_input(input, filter, payload_only, raw);
-  int ret = bns_output(output, fname, filter, size, count, &packets, usage);
+  int ret = bns_output(output, fname, filter, size, count, &packets, link, usage);
   return ret;
 }
 
