@@ -44,7 +44,8 @@ int bns_input(FILE* input, struct netutils_filter_s filter, _Bool payload_only, 
   /* Parse toutes les lignes du fichier */
   while(!feof(input)){
     if(!b_ghdr) {
-      fread(&ghdr, 1, sizeof(pcap_hdr_t), input);
+      reads = fread(&ghdr, 1, sizeof(pcap_hdr_t), input);
+      reads = 0; /* rem warning */
       printf("Magic: %s\n", netutils_pcap_magic_str(ghdr.magic_number));
       printf("Version: %d.%d\n", ghdr.version_major, ghdr.version_minor);
       printf("GMT correction: %d\n", ghdr.thiszone);
@@ -55,7 +56,8 @@ int bns_input(FILE* input, struct netutils_filter_s filter, _Bool payload_only, 
       b_ghdr = 1;
     } 
     if(!b_phdr) {
-      fread(&phdr, 1, sizeof(pcaprec_hdr_t), input);
+      reads = fread(&phdr, 1, sizeof(pcaprec_hdr_t), input);
+      reads = 0; /* rem warning */
       b_phdr = 1;
     } else {   
       b_phdr = 0;
