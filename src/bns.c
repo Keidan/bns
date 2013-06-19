@@ -158,13 +158,22 @@ int main(int argc, char** argv) {
 	tok = stringtoken_init(tmp+1, ",");
 	/* mac */
 	tmptok = stringtoken_next_token(tok);
-	if(tmptok) strcpy(mac, tmptok);
+	if(tmptok) {
+	  strcpy(mac, tmptok);
+	  free(tmptok);
+	}
 	/* host */
 	tmptok = stringtoken_next_token(tok);
-	if(tmptok) strcpy(host, tmptok);
+	if(tmptok){
+	  strcpy(host, tmptok);
+	  free(tmptok);
+	}
 	/* port */
 	tmptok = stringtoken_next_token(tok);
-	if(tmptok) port = string_parse_int(tmptok, 0);
+	if(tmptok) {
+	  port = string_parse_int(tmptok, 0);
+	  free(tmptok);
+	}
 	stringtoken_release(tok);
 	/* test */
 	if(strlen(host)) {
