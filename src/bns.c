@@ -209,12 +209,10 @@ int main(int argc, char** argv) {
     }
   }
 
-  struct netutils_filter_s filter = {
-    .ip = long_host,
-    .port = port,
-  };
-  bzero(filter.iface, IF_NAMESIZE);
-  bzero(filter.mac, NETUTILS_SMAC_LEN);
+  struct netutils_filter_s filter;
+  memset(&filter, 0, sizeof(struct netutils_filter_s));
+  filter.ip = long_host;
+  filter.port = port;
   if(strlen(iname)) strcpy(filter.iface, iname);
   if(strlen(mac)) strcpy(filter.mac, mac);
 
