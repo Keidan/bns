@@ -62,10 +62,6 @@ static const struct option long_options[] = {
 static void bns_sig_int(sig_t s);
 static void bns_cleanup(void);
 
-/**
- * Affichage du 'usage'.
- * @param err Code passe a exit.
- */
 void usage(int err) {
   fprintf(stdout, "usage: bns options\n");
   fprintf(stdout, "/!\\ Without input: Root privileges required.\n");
@@ -109,7 +105,8 @@ int main(int argc, char** argv) {
   bzero(iname, IF_NAMESIZE);
   bzero(host, _POSIX_HOST_NAME_MAX);
   fprintf(stdout, "Basic network sniffer is a FREE software v%d.%d.\nCopyright 2011-2013 By kei\nLicense GPL.\n\n", BNS_VERSION_MAJOR, BNS_VERSION_MINOR);
-  /* pour fermer proprement sur le kill */
+
+
   atexit(bns_cleanup);
   signal(SIGINT, (__sighandler_t)bns_sig_int);
 
@@ -179,7 +176,6 @@ int main(int argc, char** argv) {
 	if(strlen(host)) {
 	  if(!netutils_is_ipv4(host))
 	    netutils_hostname_to_ip(host, host);
-	  /* passage de l'ip en long*/
 	  long_host = netutils_ip_to_long(host);
 	}
 	break;
@@ -232,13 +228,12 @@ int main(int argc, char** argv) {
 
 
 static void bns_sig_int(sig_t s) {
-  printf("\n"); /* saute le ^C qui s'affiche dans la console... */
+  printf("\n"); /* skip the ^C on the console... */
   exit(0); /* call atexit */
 }
 
 static void bns_cleanup(void) {
   char ssize[SYSUTILS_MAX_SSIZE];
-  /* si les fichiers ne sont pas sur stdxxx */
   if(input) fclose(input), input = NULL;
   if(output) {
     fprintf(stderr, "%d packets captured.\n", packets);

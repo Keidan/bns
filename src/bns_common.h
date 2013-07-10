@@ -39,27 +39,27 @@
 
   /**
    * @fn int bns_input(FILE* input, struct netutils_filter_s filter, _Bool payload_only, _Bool raw)
-   * @brief Fonction gerant le mode input.
-   * @param input Fichier input.
-   * @param filter Filtre.
-   * @param payload_only Retire uniquement la payload.
-   * @param raw Affiche la payload en raw.
-   * @return 0 si succes sinon -1.
+   * @brief Manageent of the input mode.
+   * @param input Input file.
+   * @param filter Filter.
+   * @param payload_only Exctract only the payload.
+   * @param raw Display the payload in raw.
+   * @return 0 on success else -1.
    */
   int bns_input(FILE* input, struct netutils_filter_s filter, _Bool payload_only, _Bool raw);
 
   /**
-   * @fn int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, unsigned int size, unsigned int count, _Bool pcap, int *packets, usage_fct usage)
-   * @brief Fonction gerant le mode output et console.
-   * @param output Fichier output ou NULL pour le mode console.
-   * @param outputname Nom du fichier.
-   * @param filter Filtre.
-   * @param size Taille du fichier en Mb.
-   * @param count Nombre max de fichiers.
-   * @param packets Nombre de paquets.
-   * @param link Type du lien.
-   * @param usage Fonction usage.
-   * @return 0 si succes sinon -1.
+   * @fn int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, unsigned int size, unsigned int count, int *packets, __u32 link, usage_fct usage)
+   * @brief Management of the output and console modes.
+   * @param output Output file else NULL for the console mode.
+   * @param outputname Output file name.
+   * @param filter Filter.
+   * @param size File size in Mb.
+   * @param count Maximum of files.
+   * @param packets Packets numbers.
+   * @param link Link type.
+   * @param usage Usage function.
+   * @return 0 on success else -1.
    */
   int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, unsigned int size, unsigned int count, int *packets, __u32 link, usage_fct usage);
 
