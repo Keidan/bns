@@ -1,36 +1,36 @@
 /**
- *******************************************************************************
- * @file bns_input.c
- * @author Keidan
- * @date 03/01/2013
- * @par Project
- * bns
- *
- * @par Copyright
- * Copyright 2011-2013 Keidan, all right reserved
- *
- * This software is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY.
- *
- * Licence summary : 
- *    You can modify and redistribute the sources code and binaries.
- *    You can send me the bug-fix
- *
- * Term of the licence in in the file licence.txt.
- *
- *******************************************************************************
- */
+*******************************************************************************
+* @file bns_input.c
+* @author Keidan
+* @date 03/01/2013
+* @par Project
+* bns
+*
+* @par Copyright
+* Copyright 2011-2013 Keidan, all right reserved
+*
+* This software is distributed in the hope that it will be useful, but WITHOUT
+* ANY WARRANTY.
+*
+* Licence summary : 
+*    You can modify and redistribute the sources code and binaries.
+*    You can send me the bug-fix
+*
+* Term of the licence in in the file licence.txt.
+*
+*******************************************************************************
+*/
 #include "bns_common.h"
 
 
 /**
  * @fn int bns_input(FILE* input, struct netutils_filter_s filter, _Bool payload_only, _Bool raw)
- * @brief Fonction gerant le mode input.
- * @param input Fichier input.
- * @param filter Filtre.
- * @param payload_only Retire uniquement la payload.
- * @param raw Affiche la payload en raw.
- * @return 0 si succes sinon -1.
+ * @brief Manageent of the input mode.
+ * @param input Input file.
+ * @param filter Filter.
+ * @param payload_only Exctract only the payload.
+ * @param raw Display the payload in raw.
+ * @return 0 on success else -1.
  */
 int bns_input(FILE* input, struct netutils_filter_s filter, _Bool payload_only, _Bool raw) {
   struct netutils_headers_s net;
@@ -41,7 +41,7 @@ int bns_input(FILE* input, struct netutils_filter_s filter, _Bool payload_only, 
   pcap_hdr_t ghdr;
   pcaprec_hdr_t phdr;
 
-  /* Parse toutes les lignes du fichier */
+  /* Parse all lines */
   while(!feof(input)){
     if(!b_ghdr) {
       reads = fread(&ghdr, 1, sizeof(pcap_hdr_t), input);
@@ -66,23 +66,23 @@ int bns_input(FILE* input, struct netutils_filter_s filter, _Bool payload_only, 
       printf("Include length: %d\n", phdr.incl_len);
       printf("Origin length: %d\n", phdr.orig_len);
       printf("----\n");
-      /* Allocation du buffer. */
+      /* Buffer alloc */
       if((buffer = (char*)malloc(phdr.incl_len)) == NULL) {
 	logger(LOG_ERR, "FATAL: Unable to alloc memory (length:%d)\n", phdr.incl_len);
 	return EXIT_FAILURE;
       }
-      /* RAZ du buffer. */
+      /* RAZ the buffer. */
       bzero(buffer, phdr.incl_len);
       offset = 0;
       while(offset < phdr.incl_len) {
 	reads = fread(buffer + offset, 1, phdr.incl_len - offset, input);
 	offset += reads;
       }
-      /* decodage des differentes entetes */
+      /* decode all headers */
       if((plen = netutils_decode_buffer(buffer, offset, &net, NETUTILS_CONVERT_NET2HOST)) == -1) {
     	free(buffer);
     	logger(LOG_ERR, "FATAL: DECODE FAILED\n");
-    	exit(EXIT_FAILURE); /* pas besoin de continuer... */
+    	exit(EXIT_FAILURE); /* fatal error */
       }
 
       if(netutils_match_from_simple_filter(&net, filter)) {
@@ -92,12 +92,12 @@ int bns_input(FILE* input, struct netutils_filter_s filter, _Bool payload_only, 
     	  else
     	    for(i = 0; i < (offset - plen); i++)
     	      printf("%c", (buffer+plen)[i]);
-    	        printf("\n");
+	  printf("\n");
         } else
     	  netprint_print_headers(buffer, offset, net);
       }
       netutils_release_buffer(&net);
-      /* Liberation du buffer. */
+      /* release the buffer */
       free(buffer), buffer = NULL;
     }
   }
