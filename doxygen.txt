@@ -100,17 +100,17 @@ REPEAT_BRIEF           = YES
 # "The $name file" "is" "provides" "specifies" "contains" 
 # "represents" "a" "an" "the"
 
-ABBREVIATE_BRIEF       = "La classe $name" \
-                         "Le widget $name" \
-                         "Le fichier $name" \
-                         est \
-                         fournit \
-                         précise \
-                         contient \
-                         représente \
-                         un \
-                         un \
-                         le
+ABBREVIATE_BRIEF       = "The $name class" \
+                         "The $name widget" \
+                         "The $name file" \
+                         is \
+                         provides \
+                         specifies \
+                         contains \
+                         represents \
+                         a \
+                         an \
+                         the
 
 # If the ALWAYS_DETAILED_SEC and REPEAT_BRIEF tags are both set to YES then 
 # Doxygen will generate a detailed section even if there is only a brief 
@@ -933,6 +933,11 @@ HTML_HEADER            =
 
 HTML_FOOTER            = 
 
+# If the HTML_TIMESTAMP tag is set to YES then the generated HTML
+# documentation will contain the timesstamp.
+
+HTML_TIMESTAMP         = YES
+
 # The HTML_STYLESHEET tag can be used to specify a user-defined cascading 
 # style sheet that is used by each HTML page. It can be used to 
 # fine-tune the look of the HTML output. If the tag is left blank doxygen 
@@ -1168,7 +1173,7 @@ DISABLE_INDEX          = NO
 # Since the tree basically has the same information as the tab index you 
 # could consider to set DISABLE_INDEX to NO when enabling this option.
 
-GENERATE_TREEVIEW      = NO
+GENERATE_TREEVIEW      = YES
 
 # The ENUM_VALUES_PER_LINE tag can be used to set the number of enum values 
 # (range [0,1..20]) that doxygen will group on one line in the generated HTML 
