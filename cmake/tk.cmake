@@ -23,8 +23,9 @@ set(extra_clean
   lib/tk/src/tk/CMakeFiles/tk.dir/sys/sysutils.c.o
   lib/tk/src/tk/CMakeFiles/tk.dir/sys/uz.c.o
   lib/tk/src/tk/CMakeFiles/tk.dir/sys/proc.c.o
-  lib/tk/src/tk/CMakeFiles/tk.dir/net/netutils.c.o
-  lib/tk/src/tk/CMakeFiles/tk.dir/net/netprint.c.o
+  lib/tk/src/tk/CMakeFiles/tk.dir/io/net/netutils.c.o
+  lib/tk/src/tk/CMakeFiles/tk.dir/io/net/netprint.c.o
+  lib/tk/src/tk/CMakeFiles/tk.dir/io/sr.c.o
   lib/tk/src/zlib-minizip/CMakeFiles/zlib-minizip.dir/unzip.c.o
   lib/tk/src/zlib-minizip/CMakeFiles/zlib-minizip.dir/ioapi.c.o
 )

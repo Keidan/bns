@@ -30,7 +30,7 @@
   #include <string.h>
   #include <tk/sys/log.h>
   #include <tk/sys/sysutils.h>
-  #include <tk/net/net.h>
+  #include <tk/io/net/net.h>
   #include <tk/text/string.h>
 
   #define BNS_OUTPUT_MAX_FILES 999
