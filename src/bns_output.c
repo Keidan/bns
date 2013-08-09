@@ -25,13 +25,13 @@
 #define SIZE_1MB 1048576
 
 /**
- * @fn static void bns_output_err_clean(struct netutils_headers_s *net, struct iface_s *ifaces, char* buffer)
+ * @fn static void bns_output_err_clean(struct netutils_headers_s *net, struct iface_s *ifaces, net_buffer_t buffer)
  * @brief Cleanup on error.
  * @param net Headers.
  * @param ifaces List of interfaces.
  * @param buffer Buffer datas.
  */
-static void bns_output_err_clean(struct netutils_headers_s *net, struct iface_s *ifaces, char* buffer) {
+static void bns_output_err_clean(struct netutils_headers_s *net, struct iface_s *ifaces, net_buffer_t buffer) {
   if(net) netutils_release_buffer(net);
   if(ifaces) netutils_clear_ifaces(ifaces);
   if(buffer) free(buffer);
@@ -53,7 +53,7 @@ static void bns_output_err_clean(struct netutils_headers_s *net, struct iface_s 
 int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, unsigned int size, unsigned int count, int *packets, __u32 link, usage_fct usage) {
   struct iface_s ifaces;
   struct iface_s* iter;
-  char* buffer;
+  net_buffer_t buffer;
   int maxfd = 0;
   fd_set rset;
   struct netutils_headers_s net;
@@ -88,7 +88,7 @@ int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, 
 	  continue;
 	}
 	/* buffer alloc */
-	buffer = (char*)malloc(len);
+	buffer = (net_buffer_t)malloc(len);
 	if(!buffer) {
 	  /* A failure at this point is very critical. */
 	  netutils_clear_ifaces(&ifaces);
