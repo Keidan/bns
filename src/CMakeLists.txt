@@ -13,4 +13,4 @@ set(bin_src
   ${BNS_SRC_DIR}/bns.c
 )
 add_executable(bns ${bin_src})
-target_link_libraries(bns tk)
+target_link_libraries(bns tk zlib-minizip)
