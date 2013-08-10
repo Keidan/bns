@@ -30,6 +30,7 @@
 #include <signal.h>
 #include <tk/text/string.h>
 #include <tk/text/stringtoken.h>
+#include <tk/sys/sysutils.h>
 
 static FILE* output = NULL;
 static FILE* input = NULL;
@@ -59,7 +60,6 @@ static const struct option long_options[] = {
     fprintf(stderr, __VA_ARGS__);		\
   })
 
-static void bns_sig_int(sig_t s);
 static void bns_cleanup(void);
 
 void usage(int err) {
@@ -107,8 +107,7 @@ int main(int argc, char** argv) {
   fprintf(stdout, "Basic network sniffer is a FREE software v%d.%d.\nCopyright 2011-2013 By kei\nLicense GPL.\n\n", BNS_VERSION_MAJOR, BNS_VERSION_MINOR);
 
 
-  atexit(bns_cleanup);
-  signal(SIGINT, (__sighandler_t)bns_sig_int);
+  sysutils_exit_action(log_init_cast("bns", LOG_PID, LOG_USER), bns_cleanup);
 
   int opt;
   while ((opt = getopt_long(argc, argv, "h0:1:2:3:456:7:8:", long_options, NULL)) != -1) {
@@ -224,12 +223,6 @@ int main(int argc, char** argv) {
     return bns_input(input, filter, payload_only, raw);
   int ret = bns_output(output, fname, filter, size, count, &packets, link, usage);
   return ret;
-}
-
-
-static void bns_sig_int(sig_t s) {
-  printf("\n"); /* skip the ^C on the console... */
-  exit(0); /* call atexit */
 }
 
 static void bns_cleanup(void) {
