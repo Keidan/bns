@@ -100,6 +100,7 @@ int main(int argc, char** argv) {
   smac_t mac;
   stringtoken_t tok;
 
+  log_init("bns", LOG_PID, LOG_USER);
   bzero(fname, FILENAME_MAX);
   bzero(mac, NETUTILS_SMAC_LEN);
   bzero(iname, IF_NAMESIZE);
@@ -234,4 +235,5 @@ static void bns_cleanup(void) {
     fprintf(stderr, "File size %s.\n", ssize);
     fclose(output), output = NULL;
   }
+  log_close();
 }

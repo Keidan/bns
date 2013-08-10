@@ -34,7 +34,7 @@
  */
 int bns_input(FILE* input, struct netutils_filter_s filter, _Bool payload_only, _Bool raw) {
   struct netutils_headers_s net;
-  char* buffer = NULL;
+  net_buffer_t buffer = NULL;
   int plen = 0;
   __u32 i, reads, offset;
   _Bool b_ghdr = 0, b_phdr = 0;
@@ -67,7 +67,7 @@ int bns_input(FILE* input, struct netutils_filter_s filter, _Bool payload_only, 
       printf("Origin length: %d\n", phdr.orig_len);
       printf("----\n");
       /* Buffer alloc */
-      if((buffer = (char*)malloc(phdr.incl_len)) == NULL) {
+      if((buffer = (net_buffer_t)malloc(phdr.incl_len)) == NULL) {
 	logger(LOG_ERR, "FATAL: Unable to alloc memory (length:%d)\n", phdr.incl_len);
 	return EXIT_FAILURE;
       }

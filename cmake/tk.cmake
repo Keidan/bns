@@ -18,10 +18,13 @@ add_dependencies(clean-all libtk_clean-all)
 set(extra_clean 
   lib/tk/lib/${DISTRIBUTION}/${CMAKE_BUILD_TYPE}/libtk.so 
   lib/tk/src/tk/CMakeFiles/tk.dir/text/string.c.o
+  lib/tk/src/tk/CMakeFiles/tk.dir/text/stringbuffer.c.o
   lib/tk/src/tk/CMakeFiles/tk.dir/text/stringtoken.c.o
   lib/tk/src/tk/CMakeFiles/tk.dir/sys/log.c.o
   lib/tk/src/tk/CMakeFiles/tk.dir/sys/sysutils.c.o
-  lib/tk/src/tk/CMakeFiles/tk.dir/sys/uz.c.o
+  lib/tk/src/tk/CMakeFiles/tk.dir/sys/z.c.o
+  lib/tk/src/tk/CMakeFiles/tk.dir/shell/shell.c.o
+  lib/tk/src/tk/CMakeFiles/tk.dir/shell/shell_term.c.o
   lib/tk/src/tk/CMakeFiles/tk.dir/sys/proc.c.o
   lib/tk/src/tk/CMakeFiles/tk.dir/io/net/netutils.c.o
   lib/tk/src/tk/CMakeFiles/tk.dir/io/net/netprint.c.o
