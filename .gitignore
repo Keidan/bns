@@ -7,3 +7,4 @@ cmake_*
 #*
 .#*
 doc
+bns_config.h
