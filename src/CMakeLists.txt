@@ -2,7 +2,7 @@
 # to the source code
 configure_file (
   "bns_config.h.in"
-  "src/bns_config.h"
+  "bns_config.h"
 )
 
 
