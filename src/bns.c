@@ -243,5 +243,4 @@ static void bns_cleanup(void) {
     fprintf(stderr, "File size %s.\n", ssize);
     fclose(output), output = NULL;
   }
-  log_close();
 }
