@@ -25,20 +25,20 @@
 #define SIZE_1MB 1048576
 
 /**
- * @fn static void bns_output_err_clean(struct netutils_headers_s *net, struct iface_s *ifaces, net_buffer_t buffer)
+ * @fn static void bns_output_err_clean(struct ntools_headers_s *net, struct iface_s *ifaces, net_buffer_t buffer)
  * @brief Cleanup on error.
  * @param net Headers.
  * @param ifaces List of interfaces.
  * @param buffer Buffer datas.
  */
-static void bns_output_err_clean(struct netutils_headers_s *net, struct iface_s *ifaces, net_buffer_t buffer) {
-  if(net) netutils_release_buffer(net);
-  if(ifaces) netutils_clear_ifaces(ifaces);
+static void bns_output_err_clean(struct ntools_headers_s *net, struct iface_s *ifaces, net_buffer_t buffer) {
+  if(net) ntools_release_buffer(net);
+  if(ifaces) ntools_clear_ifaces(ifaces);
   if(buffer) free(buffer);
 }
 
   /**
-   * @fn int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, unsigned int size, unsigned int count, int *packets, __u32 link, usage_fct usage)
+   * @fn int bns_output(FILE* output, char* outputname, struct ntools_filter_s filter, unsigned int size, unsigned int count, int *packets, __u32 link, usage_fct usage)
    * @brief Management of the output and console modes.
    * @param output Output file else NULL for the console mode.
    * @param outputname Output file name.
@@ -50,13 +50,13 @@ static void bns_output_err_clean(struct netutils_headers_s *net, struct iface_s 
    * @param usage Usage function.
    * @return 0 on success else -1.
    */
-int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, unsigned int size, unsigned int count, int *packets, __u32 link, usage_fct usage) {
+int bns_output(FILE* output, char* outputname, struct ntools_filter_s filter, unsigned int size, unsigned int count, int *packets, __u32 link, usage_fct usage) {
   struct iface_s ifaces;
   struct iface_s* iter;
   net_buffer_t buffer;
   int maxfd = 0;
   fd_set rset;
-  struct netutils_headers_s net;
+  struct ntools_headers_s net;
   unsigned int current = 0;
   _Bool first = 1;
   
@@ -67,7 +67,7 @@ int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, 
   FD_ZERO(&rset);
 
   /* Prepares the interface(s). */
-  if(netutils_prepare_ifaces(&ifaces, &maxfd, &rset, filter.iface) != 0) {
+  if(ntools_prepare_ifaces(&ifaces, &maxfd, &rset, filter.iface) != 0) {
     bns_output_err_clean(NULL, &ifaces, NULL);/* Cleanup and close all opened sockets. */
     return EXIT_FAILURE;
   }
@@ -78,10 +78,10 @@ int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, 
       /* List all interface to retrieve the good one. */
       list_for_each_entry(iter,&ifaces.list, list) {
 	/* the package must be for us and the interface must be up. */
-	if(!FD_ISSET(iter->fd, &rset) || !netutils_device_is_up(iter->fd, iter->name)) continue;
+	if(!FD_ISSET(iter->fd, &rset) || !ntools_device_is_up(iter->fd, iter->name)) continue;
 	
 	/* Get the available datas to read */
-	__u32 len = netutils_datas_available(iter->fd);
+	__u32 len = ntools_datas_available(iter->fd);
 	/* The size is valid ? */
 	if(!len) {
 	  logger(LOG_ERR, "%s: Zero length o_O ?\n", iter->name);
@@ -91,7 +91,7 @@ int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, 
 	buffer = (net_buffer_t)malloc(len);
 	if(!buffer) {
 	  /* A failure at this point is very critical. */
-	  netutils_clear_ifaces(&ifaces);
+	  ntools_clear_ifaces(&ifaces);
 	  bns_output_err_clean(NULL, &ifaces, NULL);
 	  logger(LOG_ERR, "%s: Malloc failed!\n", iter->name);
 	  return EXIT_FAILURE;
@@ -107,13 +107,13 @@ int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, 
 	}
 
 	/* decode all headers */
-	if(netutils_decode_buffer(buffer, ret, &net, NETUTILS_CONVERT_NET2HOST) == -1) {
+	if(ntools_decode_buffer(buffer, ret, &net, NTOOLS_CONVERT_NET2HOST) == -1) {
 	  bns_output_err_clean(NULL, &ifaces, buffer);
 	  logger(LOG_ERR, "FATAL: DECODE FAILED\n");
 	  exit(EXIT_FAILURE); /* fatal error. */
 	}
         /* A rule is applied ? */
-	if(!netutils_match_from_simple_filter(&net, filter)) {
+	if(!ntools_match_from_simple_filter(&net, filter)) {
 	  bns_output_err_clean(&net, NULL, buffer);
 	  continue;
 	} 
@@ -128,7 +128,7 @@ int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, 
 	      exit(0);
 	    } 
 	    /* get the file size */
-	    long fsize = sysutils_fsize(output);
+	    long fsize = stools_fsize(output);
 	    long rsize = SIZE_1MB * size;
 	    /* if the file size + the packet length is greater than the desired size. */
 	    if(fsize+ret >= rsize) {
@@ -164,23 +164,23 @@ int bns_output(FILE* output, char* outputname, struct netutils_filter_s filter, 
 	    }
 	  }
 	  /* decoding + display parts */
-	  netutils_write_pcap_packet(output, link, buffer, len, ret, &first);
+	  ntools_write_pcap_packet(output, link, buffer, len, ret, &first);
 	} else {
 	  printf("iFace name: %s (%d bytes)\n", iter->name, ret);
 
 	  /* headers display */
-	  netprint_print_headers(buffer, ret, net);
+	  nprint_print_headers(buffer, ret, net);
 	}
 	/* release the buffer */
 	free(buffer);
 	(*packets)++;
 	/* release the headers */
-	netutils_release_buffer(&net);
+	ntools_release_buffer(&net);
       } /* foreach */
     } /* select */
   } /* while */
 
   /* release all resources ; maybe unreachable */
-  netutils_clear_ifaces(&ifaces);
+  ntools_clear_ifaces(&ifaces);
   return EXIT_SUCCESS;
 }

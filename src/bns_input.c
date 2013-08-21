@@ -24,7 +24,7 @@
 
 
 /**
- * @fn int bns_input(FILE* input, struct netutils_filter_s filter, _Bool payload_only, _Bool raw)
+ * @fn int bns_input(FILE* input, struct ntools_filter_s filter, _Bool payload_only, _Bool raw)
  * @brief Manageent of the input mode.
  * @param input Input file.
  * @param filter Filter.
@@ -32,8 +32,8 @@
  * @param raw Display the payload in raw.
  * @return 0 on success else -1.
  */
-int bns_input(FILE* input, struct netutils_filter_s filter, _Bool payload_only, _Bool raw) {
-  struct netutils_headers_s net;
+int bns_input(FILE* input, struct ntools_filter_s filter, _Bool payload_only, _Bool raw) {
+  struct ntools_headers_s net;
   net_buffer_t buffer = NULL;
   int plen = 0;
   __u32 i, reads, offset;
@@ -46,7 +46,7 @@ int bns_input(FILE* input, struct netutils_filter_s filter, _Bool payload_only, 
     if(!b_ghdr) {
       reads = fread(&ghdr, 1, sizeof(pcap_hdr_t), input);
       reads = 0; /* rem warning */
-      printf("Magic: %s\n", netutils_pcap_magic_str(ghdr.magic_number));
+      printf("Magic: %s\n", ntools_pcap_magic_str(ghdr.magic_number));
       printf("Version: %d.%d\n", ghdr.version_major, ghdr.version_minor);
       printf("GMT correction: %d\n", ghdr.thiszone);
       printf("Accuracy timestamps: %d\n", ghdr.sigfigs);
@@ -79,24 +79,24 @@ int bns_input(FILE* input, struct netutils_filter_s filter, _Bool payload_only, 
 	offset += reads;
       }
       /* decode all headers */
-      if((plen = netutils_decode_buffer(buffer, offset, &net, NETUTILS_CONVERT_NET2HOST)) == -1) {
+      if((plen = ntools_decode_buffer(buffer, offset, &net, NTOOLS_CONVERT_NET2HOST)) == -1) {
     	free(buffer);
     	logger(LOG_ERR, "FATAL: DECODE FAILED\n");
     	exit(EXIT_FAILURE); /* fatal error */
       }
 
-      if(netutils_match_from_simple_filter(&net, filter)) {
+      if(ntools_match_from_simple_filter(&net, filter)) {
         if(payload_only) {
     	  if(!raw)
-    	    netutils_print_hex(stdout, buffer + plen, offset - plen, 0);
+    	    ntools_print_hex(stdout, buffer + plen, offset - plen, 0);
     	  else
     	    for(i = 0; i < (offset - plen); i++)
     	      printf("%c", (buffer+plen)[i]);
 	  printf("\n");
         } else
-    	  netprint_print_headers(buffer, offset, net);
+    	  nprint_print_headers(buffer, offset, net);
       }
-      netutils_release_buffer(&net);
+      ntools_release_buffer(&net);
       /* release the buffer */
       free(buffer), buffer = NULL;
     }

@@ -30,7 +30,7 @@
 #include <signal.h>
 #include <tk/text/string.h>
 #include <tk/text/stringtoken.h>
-#include <tk/sys/syssig.h>
+#include <tk/sys/ssig.h>
 
 static FILE* output = NULL;
 static FILE* input = NULL;
@@ -84,7 +84,7 @@ void usage(int err) {
   fprintf(stdout, "\t--size: Maximum size in Mb of the output file (only available with --output).\n");
   fprintf(stdout, "\t--count: Maximum number of files - max value %d (only available with --output).\n", BNS_OUTPUT_MAX_FILES);
   fprintf(stdout, "\t--link: Force the default link type (only available with --output).\n");
-  fprintf(stdout, "\t\tThe default link type correspond to value %d (ethernet)\n", NETUTILS_PCAP_LINKTYPE_ETHERNET);
+  fprintf(stdout, "\t\tThe default link type correspond to value %d (ethernet)\n", NTOOLS_PCAP_LINKTYPE_ETHERNET);
   fprintf(stdout, "\t\tSee the following link for more types: http://www.tcpdump.org/linktypes.html\n");
   exit(err);
 }
@@ -96,21 +96,21 @@ int main(int argc, char** argv) {
   _Bool payload_only = 0, raw = 0;
   __u32 long_host = 0, size = 0, count = 0;
   __u32 idx;
-  __u32 link = NETUTILS_PCAP_LINKTYPE_ETHERNET;
+  __u32 link = NTOOLS_PCAP_LINKTYPE_ETHERNET;
   char fname[FILENAME_MAX];
   smac_t mac;
   stringtoken_t tok;
 
   bzero(fname, FILENAME_MAX);
-  bzero(mac, NETUTILS_SMAC_LEN);
+  bzero(mac, NTOOLS_SMAC_LEN);
   bzero(iname, IF_NAMESIZE);
   bzero(host, _POSIX_HOST_NAME_MAX);
   fprintf(stdout, "Basic network sniffer is a FREE software v%d.%d.\nCopyright 2011-2013 By kei\nLicense GPL.\n\n", BNS_VERSION_MAJOR, BNS_VERSION_MINOR);
 
 
-  syssig_init(log_init_cast_user("bns", LOG_PID), bns_cleanup);
-  syssig_add_signal(SIGINT, bns_signals);
-  syssig_add_signal(SIGTERM, bns_signals);
+  ssig_init(log_init_cast_user("bns", LOG_PID), bns_cleanup);
+  ssig_add_signal(SIGINT, bns_signals);
+  ssig_add_signal(SIGTERM, bns_signals);
 
   int opt;
   while ((opt = getopt_long(argc, argv, "h0:1:2:3:456:7:8:", long_options, NULL)) != -1) {
@@ -176,9 +176,9 @@ int main(int argc, char** argv) {
 	stringtoken_release(tok);
 	/* test */
 	if(strlen(host)) {
-	  if(!netutils_is_ipv4(host))
-	    netutils_hostname_to_ip(host, host);
-	  long_host = netutils_ip_to_long(host);
+	  if(!ntools_is_ipv4(host))
+	    ntools_hostname_to_ip(host, host);
+	  long_host = ntools_ip_to_long(host);
 	}
 	break;
       case '4': /* payload */
@@ -198,7 +198,7 @@ int main(int argc, char** argv) {
         }
 	break;
       case '8': /* link */
-	link = string_parse_int(optarg, NETUTILS_PCAP_LINKTYPE_ETHERNET);
+	link = string_parse_int(optarg, NTOOLS_PCAP_LINKTYPE_ETHERNET);
 	break;
       default: /* '?' */
 	blogger("Unknown option '%c'\n", opt);
@@ -207,8 +207,8 @@ int main(int argc, char** argv) {
     }
   }
 
-  struct netutils_filter_s filter;
-  memset(&filter, 0, sizeof(struct netutils_filter_s));
+  struct ntools_filter_s filter;
+  memset(&filter, 0, sizeof(struct ntools_filter_s));
   filter.ip = long_host;
   filter.port = port;
   if(strlen(iname)) strcpy(filter.iface, iname);
@@ -219,8 +219,8 @@ int main(int argc, char** argv) {
   else if(output) fprintf(stdout, "Ouput ('%s')\n", fname);
   else            fprintf(stdout, "Console\n");
 
-  fprintf(stdout, "Filter: [%s]{%s,%s,%d}\n",  strlen(iname) ? iname : "*", netutils_valid_mac(mac) ? mac : "*", strlen(host) ? host : "*", port);
-  fprintf(stdout, "PCAP support: %s\n", NETPRINT_SET_NSET(1));
+  fprintf(stdout, "Filter: [%s]{%s,%s,%d}\n",  strlen(iname) ? iname : "*", ntools_valid_mac(mac) ? mac : "*", strlen(host) ? host : "*", port);
+  fprintf(stdout, "PCAP support: %s\n", NPRINT_SET_NSET(1));
   fprintf(stdout, "\n");
   if(input)
     return bns_input(input, filter, payload_only, raw);
@@ -235,11 +235,11 @@ static void bns_signals(int sig) {
 }
 
 static void bns_cleanup(void) {
-  char ssize[SYSUTILS_MAX_SSIZE];
+  char ssize[STOOLS_MAX_SSIZE];
   if(input) fclose(input), input = NULL;
   if(output) {
     fprintf(stderr, "%d packets captured.\n", packets);
-    sysutils_size_to_string(sysutils_fsize(output), ssize);
+    stools_size_to_string(stools_fsize(output), ssize);
     fprintf(stderr, "File size %s.\n", ssize);
     fclose(output), output = NULL;
   }
