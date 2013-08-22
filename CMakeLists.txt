@@ -30,7 +30,7 @@ add_custom_target(doxygen
 )
 # The version number.
 set (BNS_VERSION_MAJOR 3)
-set (BNS_VERSION_MINOR 5)
+set (BNS_VERSION_MINOR 6)
 
 # To produce x86_64 binaries
 if("${CMAKE_BUILD_TYPE}" MATCHES "x86_64")
@@ -71,7 +71,13 @@ endif()
 set(BNS_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin/${DISTRIBUTION}/${CMAKE_BUILD_TYPE})
 file(MAKE_DIRECTORY ${BNS_BINARY_DIR})
 set(EXECUTABLE_OUTPUT_PATH ${BNS_BINARY_DIR})
-link_directories("${CMAKE_SOURCE_DIR}/lib/tk/lib/${DISTRIBUTION}/${CMAKE_BUILD_TYPE}")
+set(TK_LIB_DIR "${CMAKE_SOURCE_DIR}/lib/tk/lib/${DISTRIBUTION}/${CMAKE_BUILD_TYPE}")
+link_directories("${TK_LIB_DIR}")
+
+add_custom_target(install
+   COMMAND ${CMAKE_COMMAND} -DLIBRARIES="${TK_LIB_DIR}" -DBINARIES="${EXECUTABLE_OUTPUT_PATH}" -DNAME="bns-${DISTRIBUTION}-${CMAKE_BUILD_TYPE}" -P cmake/install.cmake
+)
+
 
 add_subdirectory(${BNS_SRC_DIR})
 
