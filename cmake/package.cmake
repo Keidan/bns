@@ -2,7 +2,9 @@
 set(tmp_dir "/tmp/${NAME}")
 
 file(COPY "${LIBRARIES}/libtk.so" DESTINATION "${tmp_dir}")
-file(COPY "${LIBRARIES}/libzlib-minizip.so" DESTINATION "${tmp_dir}")
+if (EXISTS "${LIBRARIES}/libzlib-minizip.so")
+  file(COPY "${LIBRARIES}/libzlib-minizip.so" DESTINATION "${tmp_dir}")
+endif()
 file(COPY "${BINARIES}/bns" DESTINATION "${tmp_dir}/")
 
 execute_process(

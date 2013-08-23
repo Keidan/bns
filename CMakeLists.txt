@@ -74,8 +74,8 @@ set(EXECUTABLE_OUTPUT_PATH ${BNS_BINARY_DIR})
 set(TK_LIB_DIR "${CMAKE_SOURCE_DIR}/lib/tk/lib/${DISTRIBUTION}/${CMAKE_BUILD_TYPE}")
 link_directories("${TK_LIB_DIR}")
 
-add_custom_target(install
-   COMMAND ${CMAKE_COMMAND} -DLIBRARIES="${TK_LIB_DIR}" -DBINARIES="${EXECUTABLE_OUTPUT_PATH}" -DNAME="bns-${DISTRIBUTION}-${CMAKE_BUILD_TYPE}" -P cmake/install.cmake
+add_custom_target(package
+   COMMAND ${CMAKE_COMMAND} -DLIBRARIES="${TK_LIB_DIR}" -DBINARIES="${EXECUTABLE_OUTPUT_PATH}" -DNAME="bns-${DISTRIBUTION}-${CMAKE_BUILD_TYPE}" -P cmake/package.cmake
 )
 
 
