@@ -19,23 +19,10 @@ add_dependencies(clean-all libtk_clean-all)
 
 set(extra_clean 
   ${tk_prefix}lib/${DISTRIBUTION}/${CMAKE_BUILD_TYPE}/libtk.so 
-  ${tk_prefix}src/tk/CMakeFiles/tk.dir/text/string.c.o
-  ${tk_prefix}src/tk/CMakeFiles/tk.dir/text/stringbuffer.c.o
-  ${tk_prefix}src/tk/CMakeFiles/tk.dir/text/stringtoken.c.o
-  ${tk_prefix}src/tk/CMakeFiles/tk.dir/sys/log.c.o
-  ${tk_prefix}src/tk/CMakeFiles/tk.dir/sys/stools.c.o
-  ${tk_prefix}src/tk/CMakeFiles/tk.dir/sys/ssig.c.o
-  ${tk_prefix}src/tk/CMakeFiles/tk.dir/sys/proc.c.o
-  ${tk_prefix}src/tk/CMakeFiles/tk.dir/sys/z.c.o
-  ${tk_prefix}src/tk/CMakeFiles/tk.dir/shell/shell.c.o
-  ${tk_prefix}src/tk/CMakeFiles/tk.dir/shell/shell_term.c.o
-  ${tk_prefix}src/tk/CMakeFiles/tk.dir/io/sr.c.o
-  ${tk_prefix}src/tk/CMakeFiles/tk.dir/io/net/ntools.c.o
-  ${tk_prefix}src/tk/CMakeFiles/tk.dir/io/net/nprint.c.o
-  ${tk_prefix}src/zlib-minizip/CMakeFiles/zlib-minizip.dir/unzip.c.o
-  ${tk_prefix}src/zlib-minizip/CMakeFiles/zlib-minizip.dir/zip.c.o
-  ${tk_prefix}src/zlib-minizip/CMakeFiles/zlib-minizip.dir/ioapi.c.o
 )
-
+file(GLOB_RECURSE objects "${tk_prefix}src/tk/*.o")
+foreach(file ${objects})
+  set(extra_clean ${extra_clean} ${file})
+endforeach()
 set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${extra_clean}")
 
