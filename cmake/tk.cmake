@@ -33,6 +33,7 @@ set(extra_clean
   ${tk_prefix}src/tk/CMakeFiles/tk.dir/io/net/ntools.c.o
   ${tk_prefix}src/tk/CMakeFiles/tk.dir/io/net/nprint.c.o
   ${tk_prefix}src/zlib-minizip/CMakeFiles/zlib-minizip.dir/unzip.c.o
+  ${tk_prefix}src/zlib-minizip/CMakeFiles/zlib-minizip.dir/zip.c.o
   ${tk_prefix}src/zlib-minizip/CMakeFiles/zlib-minizip.dir/ioapi.c.o
 )
 
