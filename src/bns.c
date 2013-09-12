@@ -28,9 +28,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <signal.h>
-#include <tk/text/string.h>
-#include <tk/text/stringtoken.h>
-#include <tk/sys/ssig.h>
+#include <tk/utils/string.h>
+#include <tk/utils/stringtoken.h>
+#include <tk/sys/syssig.h>
 
 static FILE* output = NULL;
 static FILE* input = NULL;
@@ -55,10 +55,6 @@ static const struct option long_options[] = {
   #define _POSIX_HOST_NAME_MAX 255
 #endif
 
-#define blogger(...) ({				\
-    logger(LOG_ERR, __VA_ARGS__);		\
-    fprintf(stderr, __VA_ARGS__);		\
-  })
 
 static void bns_cleanup(void);
 static void bns_signals(int sig);
@@ -84,7 +80,7 @@ void usage(int err) {
   fprintf(stdout, "\t--size: Maximum size in Mb of the output file (only available with --output).\n");
   fprintf(stdout, "\t--count: Maximum number of files - max value %d (only available with --output).\n", BNS_OUTPUT_MAX_FILES);
   fprintf(stdout, "\t--link: Force the default link type (only available with --output).\n");
-  fprintf(stdout, "\t\tThe default link type correspond to value %d (ethernet)\n", NTOOLS_PCAP_LINKTYPE_ETHERNET);
+  fprintf(stdout, "\t\tThe default link type correspond to value %d (ethernet)\n", NETTOOLS_PCAP_LINKTYPE_ETHERNET);
   fprintf(stdout, "\t\tSee the following link for more types: http://www.tcpdump.org/linktypes.html\n");
   exit(err);
 }
@@ -96,21 +92,21 @@ int main(int argc, char** argv) {
   _Bool payload_only = 0, raw = 0;
   __u32 long_host = 0, size = 0, count = 0;
   __u32 idx;
-  __u32 link = NTOOLS_PCAP_LINKTYPE_ETHERNET;
+  __u32 link = NETTOOLS_PCAP_LINKTYPE_ETHERNET;
   char fname[FILENAME_MAX];
   smac_t mac;
   stringtoken_t tok;
 
   bzero(fname, FILENAME_MAX);
-  bzero(mac, NTOOLS_SMAC_LEN);
+  bzero(mac, NETTOOLS_SMAC_LEN);
   bzero(iname, IF_NAMESIZE);
   bzero(host, _POSIX_HOST_NAME_MAX);
   fprintf(stdout, "Basic network sniffer is a FREE software v%d.%d.\nCopyright 2011-2013 By kei\nLicense GPL.\n\n", BNS_VERSION_MAJOR, BNS_VERSION_MINOR);
 
 
-  ssig_init(log_init_cast_user("bns", LOG_PID), bns_cleanup);
-  ssig_add_signal(SIGINT, bns_signals);
-  ssig_add_signal(SIGTERM, bns_signals);
+  syssig_init(log_init_cast_user("bns", LOG_PID|LOG_CONS|LOG_PERROR), bns_cleanup);
+  syssig_add_signal(SIGINT, bns_signals);
+  syssig_add_signal(SIGTERM, bns_signals);
 
   int opt;
   while ((opt = getopt_long(argc, argv, "h0:1:2:3:456:7:8:", long_options, NULL)) != -1) {
@@ -125,7 +121,7 @@ int main(int argc, char** argv) {
 	strncpy(fname, optarg, FILENAME_MAX);
 	output = fopen(fname, "w+");
 	if(!output) {
-	  blogger("Unable to open file '%s': (%d) %s\n", optarg, errno, strerror(errno));
+	  logger(LOG_ERR, "Unable to open file '%s': (%d) %s\n", optarg, errno, strerror(errno));
 	  usage(EXIT_FAILURE);
 	}
 	break;
@@ -133,7 +129,7 @@ int main(int argc, char** argv) {
 	strncpy(fname, optarg, FILENAME_MAX);
 	input = fopen(fname, "rb");
 	if(!input) {
-	  blogger("Unable to open file '%s': (%d) %s\n", optarg, errno, strerror(errno));
+	  logger(LOG_ERR, "Unable to open file '%s': (%d) %s\n", optarg, errno, strerror(errno));
 	  usage(EXIT_FAILURE);
 	}
 	break;
@@ -141,15 +137,15 @@ int main(int argc, char** argv) {
 	tmp = optarg;
 	idx = string_indexof(tmp, "{");
 	if(idx == -1) {
-	  blogger("Invalid filter format: '{' requires \n");
+	  logger(LOG_ERR, "Invalid filter format: '{' requires \n");
 	  usage(EXIT_FAILURE);
 	}
 	if(string_count(tmp, ',') != 2) {
-	  blogger("Invalid filter format: ','x2 requires \n");
+	  logger(LOG_ERR, "Invalid filter format: ','x2 requires \n");
 	  usage(EXIT_FAILURE);
 	}
 	if(string_count(tmp, '}') != 1) {
-	  blogger("Invalid filter format: '}'x1 requires \n");
+	  logger(LOG_ERR, "Invalid filter format: '}'x1 requires \n");
 	  usage(EXIT_FAILURE);
 	}
 	tmp[strlen(tmp)-1] = 0;
@@ -176,9 +172,9 @@ int main(int argc, char** argv) {
 	stringtoken_release(tok);
 	/* test */
 	if(strlen(host)) {
-	  if(!ntools_is_ipv4(host))
-	    ntools_hostname_to_ip(host, host);
-	  long_host = ntools_ip_to_long(host);
+	  if(!nettools_is_ipv4(host))
+	    nettools_hostname_to_ip(host, host);
+	  long_host = nettools_ip_to_long(host);
 	}
 	break;
       case '4': /* payload */
@@ -193,22 +189,22 @@ int main(int argc, char** argv) {
       case '7': /* count */
 	count = string_parse_int(optarg, BNS_OUTPUT_MAX_FILES+1);
         if(count > BNS_OUTPUT_MAX_FILES) {
-          blogger("Invalid count value (max:%d)\n", BNS_OUTPUT_MAX_FILES);
+          logger(LOG_ERR, "Invalid count value (max:%d)\n", BNS_OUTPUT_MAX_FILES);
           usage(EXIT_FAILURE);
         }
 	break;
       case '8': /* link */
-	link = string_parse_int(optarg, NTOOLS_PCAP_LINKTYPE_ETHERNET);
+	link = string_parse_int(optarg, NETTOOLS_PCAP_LINKTYPE_ETHERNET);
 	break;
       default: /* '?' */
-	blogger("Unknown option '%c'\n", opt);
+	logger(LOG_ERR, "Unknown option '%c'\n", opt);
 	usage(EXIT_FAILURE);
 	break;
     }
   }
 
-  struct ntools_filter_s filter;
-  memset(&filter, 0, sizeof(struct ntools_filter_s));
+  struct nettools_filter_s filter;
+  memset(&filter, 0, sizeof(struct nettools_filter_s));
   filter.ip = long_host;
   filter.port = port;
   if(strlen(iname)) strcpy(filter.iface, iname);
@@ -219,8 +215,8 @@ int main(int argc, char** argv) {
   else if(output) fprintf(stdout, "Ouput ('%s')\n", fname);
   else            fprintf(stdout, "Console\n");
 
-  fprintf(stdout, "Filter: [%s]{%s,%s,%d}\n",  strlen(iname) ? iname : "*", ntools_valid_mac(mac) ? mac : "*", strlen(host) ? host : "*", port);
-  fprintf(stdout, "PCAP support: %s\n", NPRINT_SET_NSET(1));
+  fprintf(stdout, "Filter: [%s]{%s,%s,%d}\n",  strlen(iname) ? iname : "*", nettools_valid_mac(mac) ? mac : "*", strlen(host) ? host : "*", port);
+  fprintf(stdout, "PCAP support: %s\n", NETPRINT_SET_NSET(1));
   fprintf(stdout, "\n");
   if(input)
     return bns_input(input, filter, payload_only, raw);
@@ -235,11 +231,11 @@ static void bns_signals(int sig) {
 }
 
 static void bns_cleanup(void) {
-  char ssize[STOOLS_MAX_SSIZE];
+  char ssize[SYSTOOLS_MAX_SSIZE];
   if(input) fclose(input), input = NULL;
   if(output) {
     fprintf(stderr, "%d packets captured.\n", packets);
-    stools_size_to_string(stools_fsize(output), ssize);
+    systools_size_to_string(file_fsize(output), ssize);
     fprintf(stderr, "File size %s.\n", ssize);
     fclose(output), output = NULL;
   }
