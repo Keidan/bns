@@ -94,11 +94,11 @@ int main(int argc, char** argv) {
   __u32 idx;
   __u32 link = NETTOOLS_PCAP_LINKTYPE_ETHERNET;
   char fname[FILENAME_MAX];
-  smac_t mac;
+  netiface_mac_t mac;
   stringtoken_t tok;
 
   bzero(fname, FILENAME_MAX);
-  bzero(mac, NETTOOLS_SMAC_LEN);
+  bzero(mac, sizeof(netiface_mac_t));
   bzero(iname, IF_NAMESIZE);
   bzero(host, _POSIX_HOST_NAME_MAX);
   fprintf(stdout, "Basic network sniffer is a FREE software v%d.%d.\nCopyright 2011-2013 By kei\nLicense GPL.\n\n", BNS_VERSION_MAJOR, BNS_VERSION_MINOR);

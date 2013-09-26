@@ -29,8 +29,8 @@ add_custom_target(doxygen
    COMMAND ${CMAKE_COMMAND} -P cmake/doxygen.cmake
 )
 # The version number.
-set (BNS_VERSION_MAJOR 3)
-set (BNS_VERSION_MINOR 7)
+set (BNS_VERSION_MAJOR 4)
+set (BNS_VERSION_MINOR 0)
 
 # To produce x86_64 binaries
 if("${CMAKE_BUILD_TYPE}" MATCHES "x86_64")
