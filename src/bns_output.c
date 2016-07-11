@@ -53,7 +53,7 @@ static void bns_output_err_clean(struct nettools_headers_s *net, htable_t ifaces
    */
 int bns_output(FILE* output, char* outputname, struct nettools_filter_s filter, unsigned int size, unsigned int count, int *packets, __u32 link, usage_fct usage) {
   htable_t ifaces;
-  netiface_t iface;
+  netiface_t iface = NULL;
   net_buffer_t buffer;
   struct netiface_info_s info;
   int maxfd = 0, kcount, i, fd;
